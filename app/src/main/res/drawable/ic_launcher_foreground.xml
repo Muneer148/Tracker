@@ -1,0 +1,46 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Timer Ring with glowing cyan stroke within 66dp safe area (radius 24 around center 54,54) -->
+    <path
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M54,30 A24,24 0 1,1 33,65" />
+    <!-- Active accent dot -->
+    <path
+        android:fillColor="#818CF8"
+        android:pathData="M54,26m-3,0a3,3 0 1,0 6,0a3,3 0 1,0 -6,0" />
+    <!-- Center Graduation Cap / Core Emblem (54, 52) -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M54,39 L71,46 L54,53 L37,46 Z" />
+    <path
+        android:fillColor="#818CF8"
+        android:pathData="M43,49.5 L43,58 C43,62 50,65 54,65 C58,65 65,62 65,58 L65,49.5 L54,54 Z" />
+    <!-- Tassel -->
+    <path
+        android:strokeColor="#FCD34D"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M70,47 L73,54 L73,61" />
+    <!-- 5H Badge pill at bottom inside safe zone -->
+    <path
+        android:fillColor="#1E293B"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="1.2"
+        android:pathData="M42,69 L66,69 A4,4 0 0,1 70,73 A4,4 0 0,1 66,77 L42,77 A4,4 0 0,1 38,73 A4,4 0 0,1 42,69 Z" />
+    <!-- "5H" indicator lines -->
+    <!-- Number 5 and H mini vector paths -->
+    <path
+        android:strokeColor="#F8FAFC"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M48,71 L45,71 L45,73.5 L48,73.5 L48,75.5 L45,75.5 M58,71 L58,75.5 M62,71 L62,75.5 M58,73.2 L62,73.2" />
+</vector>

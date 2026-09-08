@@ -1,0 +1,6 @@
+{
+  "name": "GATE 5H Prep",
+  "description": "5-Hour daily study block tracker, Oswaal & PYQ mock log, and active recall notes for GATE CS/DA, TCS NQT, and Snowflake preparation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
