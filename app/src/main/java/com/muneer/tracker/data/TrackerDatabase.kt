@@ -35,6 +35,21 @@ data class WeeklyReviewEntity(@PrimaryKey val id:String=UUID.randomUUID().toStri
 data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toString(),val topicId:String?,val title:String,val content:String,val tags:String="",val reviewDate:String?=null,val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=System.currentTimeMillis())
 
 @Dao interface TrackerDao{
+ @Query("SELECT * FROM days ORDER BY date ASC") suspend fun allDays():List<DayEntity>
+ @Query("SELECT * FROM tasks ORDER BY createdAt ASC") suspend fun allTasks():List<TaskEntity>
+ @Query("SELECT * FROM habits ORDER BY createdAt ASC") suspend fun allHabits():List<HabitEntity>
+ @Query("SELECT * FROM habit_logs ORDER BY date ASC") suspend fun allHabitLogs():List<HabitLogEntity>
+ @Query("SELECT * FROM activities ORDER BY createdAt ASC") suspend fun allActivities():List<ActivityEntity>
+ @Query("SELECT * FROM goals ORDER BY createdAt ASC") suspend fun allGoals():List<GoalEntity>
+ @Query("SELECT * FROM projects ORDER BY createdAt ASC") suspend fun allProjects():List<ProjectEntity>
+ @Query("SELECT * FROM journal_entries ORDER BY createdAt ASC") suspend fun allJournalEntries():List<JournalEntryEntity>
+ @Query("SELECT * FROM study_subjects ORDER BY name ASC") suspend fun allStudySubjects():List<StudySubjectEntity>
+ @Query("SELECT * FROM study_topics ORDER BY name ASC") suspend fun allStudyTopics():List<StudyTopicEntity>
+ @Query("SELECT * FROM study_sessions ORDER BY createdAt ASC") suspend fun allStudySessions():List<StudySessionEntity>
+ @Query("SELECT * FROM assessments ORDER BY createdAt ASC") suspend fun allAssessments():List<AssessmentEntity>
+ @Query("SELECT * FROM knowledge_notes ORDER BY createdAt ASC") suspend fun allKnowledgeNotes():List<KnowledgeNoteEntity>
+ @Query("SELECT * FROM weekly_reviews ORDER BY weekStart ASC") suspend fun allWeeklyReviews():List<WeeklyReviewEntity>
+
  @Insert(onConflict=OnConflictStrategy.REPLACE) suspend fun upsertDay(day:DayEntity)
  @Query("SELECT * FROM tasks WHERE dayId=:dayId ORDER BY completed ASC,priority ASC,createdAt ASC") fun tasksForDay(dayId:String):Flow<List<TaskEntity>>
  @Insert suspend fun insertTask(task:TaskEntity)
