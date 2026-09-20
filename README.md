@@ -6,7 +6,7 @@ A personal productivity and study-tracking application being rebuilt from the cu
 
 ## Project Status
 
-**Current stage:** V2.2 personal Android foundation implemented; hardening and verification in progress  
+**Current stage:** V2.2 personal offline Android application implemented on `dev`; cloud/multi-account V3 is intentionally out of scope  
 **Active development branch:** `dev`  
 **Stable branch:** `main`
 
@@ -558,6 +558,12 @@ The `dev` branch now contains the first clean V2 personal foundation:
 - Journal entries
 - GitHub Actions Android build workflow
 - `main` remains untouched by V2 development
+
+## V2.2 Scope Completed
+
+V2.2 is intentionally a personal, local-first Android application. It does not require an account, cloud backend, AI provider, or network connection for core tracking.
+
+Implemented domain capabilities include tasks, habits, activities, study subjects/topics/sessions, assessments, knowledge notes, goals, projects, journal entries, weekly reviews, derived progress counters, local deletion/edit controls, and a dedicated Room database.
 
 ## Remaining V2.2 Hardening
 
