@@ -39,6 +39,8 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Query("SELECT * FROM tasks WHERE dayId=:dayId ORDER BY completed ASC,priority ASC,createdAt ASC") fun tasksForDay(dayId:String):Flow<List<TaskEntity>>
  @Insert fun insertTask(task:TaskEntity)
  @Update fun updateTask(task:TaskEntity)
+ @Delete fun deleteTask(task:TaskEntity)
+ @Delete fun deleteHabit(habit:HabitEntity)
  @Query("SELECT * FROM habits WHERE active=1 ORDER BY name") fun activeHabits():Flow<List<HabitEntity>>
  @Insert(onConflict=OnConflictStrategy.IGNORE) fun insertHabit(habit:HabitEntity)
  @Query("SELECT * FROM habit_logs WHERE date=:date") fun habitLogsForDate(date:String):Flow<List<HabitLogEntity>>
@@ -48,10 +50,13 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Query("SELECT * FROM goals ORDER BY status,targetDate") fun goals():Flow<List<GoalEntity>>
  @Insert fun insertGoal(goal:GoalEntity)
  @Update fun updateGoal(goal:GoalEntity)
+ @Delete fun deleteGoal(goal:GoalEntity)
+ @Delete fun deleteProject(project:ProjectEntity)
  @Query("SELECT * FROM projects ORDER BY status,name") fun projects():Flow<List<ProjectEntity>>
  @Insert fun insertProject(project:ProjectEntity)
  @Query("SELECT * FROM journal_entries ORDER BY date DESC,updatedAt DESC") fun journal():Flow<List<JournalEntryEntity>>
  @Insert fun insertJournal(entry:JournalEntryEntity)
+ @Delete fun deleteJournal(entry:JournalEntryEntity)
  @Query("SELECT * FROM study_subjects WHERE active=1 ORDER BY name") fun studySubjects():Flow<List<StudySubjectEntity>>
  @Insert fun insertSubject(subject:StudySubjectEntity)
  @Query("SELECT * FROM study_topics ORDER BY status,name") fun studyTopics():Flow<List<StudyTopicEntity>>
