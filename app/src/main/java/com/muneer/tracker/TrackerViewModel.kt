@@ -47,6 +47,11 @@ class TrackerViewModel(app:Application):AndroidViewModel(app){
   weeklyReviews=dao.allWeeklyReviews()
  )
 
+ suspend fun restoreBackupJson(json:String) {
+  val data=TrackerBackup.parseAndValidate(json)
+  TrackerBackup.restore(TrackerDatabase.get(getApplication()),data)
+ }
+
  fun addTask(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertTask(TaskEntity(dayId=todayDayId,title=v.trim()))}
  fun deleteTask(v:TaskEntity)=viewModelScope.launch{dao.deleteTask(v)}
  fun toggleTask(v:TaskEntity)=viewModelScope.launch{dao.updateTask(v.copy(completed=!v.completed,updatedAt=System.currentTimeMillis()))}
