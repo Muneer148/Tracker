@@ -30,6 +30,23 @@ class TrackerViewModel(app:Application):AndroidViewModel(app){
  val journalCount=dao.journalCount().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),0)
  val notes=dao.knowledgeNotes().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
  init{viewModelScope.launch{dao.upsertDay(DayEntity(id=todayDayId,date=today));dao.insertHabit(HabitEntity(name="Study / learning"));dao.insertHabit(HabitEntity(name="Exercise"));dao.insertHabit(HabitEntity(name="Sleep on time"))}}
+ suspend fun createBackupJson():String = TrackerBackup.createJson(
+  days=dao.allDays(),
+  tasks=dao.allTasks(),
+  habits=dao.allHabits(),
+  habitLogs=dao.allHabitLogs(),
+  activities=dao.allActivities(),
+  goals=dao.allGoals(),
+  projects=dao.allProjects(),
+  journalEntries=dao.allJournalEntries(),
+  studySubjects=dao.allStudySubjects(),
+  studyTopics=dao.allStudyTopics(),
+  studySessions=dao.allStudySessions(),
+  assessments=dao.allAssessments(),
+  knowledgeNotes=dao.allKnowledgeNotes(),
+  weeklyReviews=dao.allWeeklyReviews()
+ )
+
  fun addTask(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertTask(TaskEntity(dayId=todayDayId,title=v.trim()))}
  fun deleteTask(v:TaskEntity)=viewModelScope.launch{dao.deleteTask(v)}
  fun toggleTask(v:TaskEntity)=viewModelScope.launch{dao.updateTask(v.copy(completed=!v.completed,updatedAt=System.currentTimeMillis()))}
