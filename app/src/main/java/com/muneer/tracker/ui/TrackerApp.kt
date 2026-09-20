@@ -29,7 +29,7 @@ import com.muneer.tracker.data.*
   items(vm.activities){x->Text("• "+x.title)}
  }}
 @Composable private fun Study(vm:TrackerViewModel,m:Modifier){
- var subject by remember{mutableStateOf("")};var session by remember{mutableStateOf("")};var minutes by remember{mutableStateOf("30")};var nt by remember{mutableStateOf("")};var nb by remember{mutableStateOf("")}
+ var subject by remember{mutableStateOf("")};var session by remember{mutableStateOf("")};var minutes by remember{mutableStateOf("30")};var nt by remember{mutableStateOf("")};var nb by remember{mutableStateOf("")};var assessment by remember{mutableStateOf("")};var score by remember{mutableStateOf("")};var total by remember{mutableStateOf("")}
  LazyColumn(m.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
   item{Text("Study",style=MaterialTheme.typography.headlineSmall)}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(subject,{subject=it},Modifier.weight(1f),label={Text("New subject")});Button({vm.addSubject(subject);subject=""}){Text("Add")}}}
@@ -37,6 +37,9 @@ import com.muneer.tracker.data.*
   item{Text("Log session",style=MaterialTheme.typography.titleLarge)}
   item{OutlinedTextField(session,{session=it},Modifier.fillMaxWidth(),label={Text("Session title")});OutlinedTextField(minutes,{minutes=it.filter(Char::isDigit)},Modifier.fillMaxWidth(),label={Text("Minutes")});Button({vm.addSession(session,minutes.toIntOrNull()?:0);session=""}){Text("Save session")}}
   items(vm.sessions.take(20)){x->Text("• "+x.title+" — "+x.durationMinutes+" min")}
+  item{Text("Assessments",style=MaterialTheme.typography.titleLarge)}
+  item{OutlinedTextField(assessment,{assessment=it},Modifier.fillMaxWidth(),label={Text("Assessment name")});Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(score,{score=it},Modifier.weight(1f),label={Text("Score")});OutlinedTextField(total,{total=it},Modifier.weight(1f),label={Text("Total")})};Button({vm.addAssessment(assessment,score.toDoubleOrNull()?:0.0,total.toDoubleOrNull()?:0.0);assessment="";score="";total=""}){Text("Save assessment")}}
+  items(vm.assessments.take(10)){x->Text("• "+x.title+" — "+x.score+"/"+x.total)}
   item{Text("Knowledge notes",style=MaterialTheme.typography.titleLarge)}
   item{OutlinedTextField(nt,{nt=it},Modifier.fillMaxWidth(),label={Text("Note title")});OutlinedTextField(nb,{nb=it},Modifier.fillMaxWidth(),minLines=3,label={Text("Active recall / knowledge")});Button({vm.addNote(nt,nb);nt="";nb=""}){Text("Save note")}}
   items(vm.notes.take(10)){x->Text("• "+x.title+": "+x.content.take(120))}
