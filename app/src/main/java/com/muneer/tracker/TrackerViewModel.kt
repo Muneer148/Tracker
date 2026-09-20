@@ -29,6 +29,7 @@ class TrackerViewModel(app:Application):AndroidViewModel(app){
  fun addTask(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertTask(TaskEntity(dayId=todayDayId,title=v.trim()))}
  fun toggleTask(v:TaskEntity)=viewModelScope.launch{dao.updateTask(v.copy(completed=!v.completed,updatedAt=System.currentTimeMillis()))}
  fun toggleHabit(v:HabitEntity)=viewModelScope.launch{val old=habitLogs.value.firstOrNull{it.habitId==v.id};dao.upsertHabitLog(HabitLogEntity(v.id,today,if((old?.completedCount?:0)>0)0 else 1))}
+ fun addHabit(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertHabit(HabitEntity(name=v.trim()))}
  fun addActivity(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertActivity(ActivityEntity(date=today,type="GENERAL",title=v.trim()))}
  fun addGoal(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertGoal(GoalEntity(title=v.trim()))}
  fun updateGoal(v:GoalEntity,p:Int)=viewModelScope.launch{dao.updateGoal(v.copy(progress=p.coerceIn(0,100),updatedAt=System.currentTimeMillis()))}
