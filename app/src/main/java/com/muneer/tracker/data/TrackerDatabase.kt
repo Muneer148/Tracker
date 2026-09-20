@@ -73,7 +73,7 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Insert suspend fun insertKnowledgeNote(note:KnowledgeNoteEntity)
  @Query("SELECT * FROM knowledge_notes ORDER BY updatedAt DESC") fun knowledgeNotes():Flow<List<KnowledgeNoteEntity>>
 }
-@Database(entities=[DayEntity::class,TaskEntity::class,HabitEntity::class,HabitLogEntity::class,ActivityEntity::class,GoalEntity::class,ProjectEntity::class,JournalEntryEntity::class,StudySubjectEntity::class,StudyTopicEntity::class,StudySessionEntity::class,AssessmentEntity::class,KnowledgeNoteEntity::class,WeeklyReviewEntity::class],version=1,exportSchema=false)
+@Database(entities=[DayEntity::class,TaskEntity::class,HabitEntity::class,HabitLogEntity::class,ActivityEntity::class,GoalEntity::class,ProjectEntity::class,JournalEntryEntity::class,StudySubjectEntity::class,StudyTopicEntity::class,StudySessionEntity::class,AssessmentEntity::class,KnowledgeNoteEntity::class,WeeklyReviewEntity::class],version=1,exportSchema=true)
 abstract class TrackerDatabase:RoomDatabase(){
  abstract fun trackerDao():TrackerDao
  companion object{
