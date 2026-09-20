@@ -91,14 +91,28 @@ import com.muneer.tracker.data.*
 private fun Settings(vm: TrackerViewModel, m: Modifier) {
     val context = LocalContext.current
     var exporting by remember { mutableStateOf(false) }
+    var pendingUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
-        if (uri == null) {
-            exporting = false
-            return@rememberLauncherForActivityResult
+        if (uri == null) exporting = false else pendingUri = uri
+    }
+
+    LaunchedEffect(pendingUri) {
+        val uri = pendingUri ?: return@LaunchedEffect
+        runCatching {
+            val json = vm.createBackupJson()
+            context.contentResolver.openOutputStream(uri)?.use { output ->
+                output.writer(Charsets.UTF_8).use { it.write(json) }
+            } ?: error("Could not open the selected file.")
+        }.onSuccess {
+            Toast.makeText(context, "Backup exported successfully.", Toast.LENGTH_LONG).show()
+        }.onFailure {
+            Toast.makeText(context, "Backup export failed: ${it.message}", Toast.LENGTH_LONG).show()
         }
-        LaunchedEffectKey.export(context, vm, uri) { exporting = false }
+        pendingUri = null
+        exporting = false
     }
 
     LazyColumn(
@@ -120,7 +134,7 @@ private fun Settings(vm: TrackerViewModel, m: Modifier) {
                     exporting = true
                     val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
                         .format(java.util.Date())
-                    launcher.launch("tracker-backup-$date.json")
+                    launcher.launch("tracker-backup-${date}.json")
                 }
             ) {
                 Text(if (exporting) "Preparing…" else "Export Backup")
@@ -131,30 +145,6 @@ private fun Settings(vm: TrackerViewModel, m: Modifier) {
                 "Restore/import will be added after export validation and recovery tests.",
                 style = MaterialTheme.typography.bodySmall
             )
-        }
-    }
-}
-
-private object LaunchedEffectKey {
-    @Composable
-    fun export(
-        context: android.content.Context,
-        vm: TrackerViewModel,
-        uri: android.net.Uri,
-        onDone: () -> Unit
-    ) {
-        LaunchedEffect(uri) {
-            runCatching {
-                val json = vm.createBackupJson()
-                context.contentResolver.openOutputStream(uri)?.use { output ->
-                    output.writer(Charsets.UTF_8).use { it.write(json) }
-                } ?: error("Could not open the selected file.")
-            }.onSuccess {
-                Toast.makeText(context, "Backup exported successfully.", Toast.LENGTH_LONG).show()
-            }.onFailure {
-                Toast.makeText(context, "Backup export failed: ${it.message}", Toast.LENGTH_LONG).show()
-            }
-            onDone()
         }
     }
 }
