@@ -20,10 +20,10 @@ import com.muneer.tracker.data.*
   item{Text("Today",style=MaterialTheme.typography.headlineSmall);Text(vm.today,style=MaterialTheme.typography.labelMedium)}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(task,{task=it},Modifier.weight(1f),label={Text("New task")});Button({vm.addTask(task);task=""}){Text("Add")}}}
   item{Text("Tasks",style=MaterialTheme.typography.titleLarge)}
-  items(vm.tasks){x->ElevatedCard(Modifier.fillMaxWidth()){Row(Modifier.fillMaxWidth().padding(12.dp),horizontalArrangement=Arrangement.SpaceBetween){Text(if(x.completed)"✓ "+x.title else x.title);TextButton({vm.toggleTask(x)}){Text(if(x.completed)"Undo" else "Done")}}}}
+  items(vm.tasks){x->ElevatedCard(Modifier.fillMaxWidth()){Row(Modifier.fillMaxWidth().padding(12.dp),horizontalArrangement=Arrangement.SpaceBetween){Text(if(x.completed)"✓ "+x.title else x.title);Row{TextButton({vm.toggleTask(x)}){Text(if(x.completed)"Undo" else "Done")};TextButton({vm.deleteTask(x)}){Text("Delete")}}}}}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(habit,{habit=it},Modifier.weight(1f),label={Text("New habit")});Button({vm.addHabit(habit);habit=""}){Text("Add")}}}
   item{Text("Habits",style=MaterialTheme.typography.titleLarge)}
-  items(vm.habits){x->val done=vm.habitLogs.any{it.habitId==x.id&&it.completedCount>0};ElevatedCard(Modifier.fillMaxWidth()){Row(Modifier.fillMaxWidth().padding(12.dp),horizontalArrangement=Arrangement.SpaceBetween){Text(if(done)"✓ "+x.name else x.name);TextButton({vm.toggleHabit(x)}){Text(if(done)"Undo" else "Done")}}}}
+  items(vm.habits){x->val done=vm.habitLogs.any{it.habitId==x.id&&it.completedCount>0};ElevatedCard(Modifier.fillMaxWidth()){Row(Modifier.fillMaxWidth().padding(12.dp),horizontalArrangement=Arrangement.SpaceBetween){Text(if(done)"✓ "+x.name else x.name);Row{TextButton({vm.toggleHabit(x)}){Text(if(done)"Undo" else "Done")};TextButton({vm.deleteHabit(x)}){Text("Delete")}}}}}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(activity,{activity=it},Modifier.weight(1f),label={Text("Log activity")});Button({vm.addActivity(activity);activity=""}){Text("Log")}}}
   item{Text("Activity",style=MaterialTheme.typography.titleLarge)}
   items(vm.activities){x->Text("• "+x.title)}
@@ -50,9 +50,9 @@ import com.muneer.tracker.data.*
   item{Text("Goals & Projects",style=MaterialTheme.typography.headlineSmall)}
   item{Text("Personal analytics",style=MaterialTheme.typography.titleLarge);Text("Completed tasks: "+vm.completedTasks.value);Text("Study time: "+vm.totalStudyMinutes.value+" min");Text("Journal entries: "+vm.journalCount.value)}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(goal,{goal=it},Modifier.weight(1f),label={Text("Goal")});Button({vm.addGoal(goal);goal=""}){Text("Add")}}}
-  items(vm.goals){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(x.title,style=MaterialTheme.typography.titleMedium);LinearProgressIndicator(progress={x.progress/100f},Modifier.fillMaxWidth());Text(x.progress.toString()+"%")}}}
+  items(vm.goals){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(x.title,style=MaterialTheme.typography.titleMedium);LinearProgressIndicator(progress={x.progress/100f},Modifier.fillMaxWidth());Row{Text(x.progress.toString()+"%");TextButton({vm.updateGoal(x,x.progress+10)}){Text("+10")};TextButton({vm.updateGoal(x,x.progress-10)}){Text("-10")};TextButton({vm.deleteGoal(x)}){Text("Delete")}}}}}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(project,{project=it},Modifier.weight(1f),label={Text("Project")});Button({vm.addProject(project);project=""}){Text("Add")}}}
-  items(vm.projects){x->Text("• "+x.name+" — "+x.status)}
+  items(vm.projects){x->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("• "+x.name+" — "+x.status);TextButton({vm.deleteProject(x)}){Text("Delete")}}}
   item{Text("Weekly review",style=MaterialTheme.typography.titleLarge);OutlinedTextField(wins,{wins=it},Modifier.fillMaxWidth(),label={Text("Wins")});OutlinedTextField(blockers,{blockers=it},Modifier.fillMaxWidth(),label={Text("Blockers")});OutlinedTextField(next,{next=it},Modifier.fillMaxWidth(),label={Text("Next focus")});Button({vm.addWeeklyReview(vm.today,wins,blockers,next);wins="";blockers="";next=""}){Text("Save review")}}
   items(vm.weeklyReviews.take(4)){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(x.weekStart,style=MaterialTheme.typography.titleMedium);Text("Wins: "+x.wins);Text("Blockers: "+x.blockers);Text("Next: "+x.nextFocus)}}}
  }}
@@ -63,5 +63,5 @@ import com.muneer.tracker.data.*
   item{OutlinedTextField(title,{title=it},Modifier.fillMaxWidth(),label={Text("Title")})}
   item{OutlinedTextField(body,{body=it},Modifier.fillMaxWidth(),minLines=5,label={Text("What happened today?")})}
   item{Button({vm.addJournal(title,body);title="";body=""}){Text("Save entry")}}
-  items(vm.journal){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(if(x.title.isBlank())x.date else x.title,style=MaterialTheme.typography.titleMedium);Text(x.content);Text(x.date,style=MaterialTheme.typography.labelSmall)}}}
+  items(vm.journal){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(if(x.title.isBlank())x.date else x.title,style=MaterialTheme.typography.titleMedium);Text(x.content);Text(x.date,style=MaterialTheme.typography.labelSmall);TextButton({vm.deleteJournal(x)}){Text("Delete")}}}}
  }}
