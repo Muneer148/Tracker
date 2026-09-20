@@ -25,7 +25,7 @@ class TrackerViewModel(app:Application):AndroidViewModel(app){
  val sessions=dao.studySessions().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
  val assessments=dao.assessments().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
  val notes=dao.knowledgeNotes().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
- init{viewModelScope.launch{if(habits.value.isEmpty()){dao.insertHabit(HabitEntity(name="Study / learning"));dao.insertHabit(HabitEntity(name="Exercise"));dao.insertHabit(HabitEntity(name="Sleep on time"))}}}
+ init{viewModelScope.launch{dao.upsertDay(DayEntity(id=todayDayId,date=today));dao.insertHabit(HabitEntity(name="Study / learning"));dao.insertHabit(HabitEntity(name="Exercise"));dao.insertHabit(HabitEntity(name="Sleep on time"))}}
  fun addTask(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertTask(TaskEntity(dayId=todayDayId,title=v.trim()))}
  fun toggleTask(v:TaskEntity)=viewModelScope.launch{dao.updateTask(v.copy(completed=!v.completed,updatedAt=System.currentTimeMillis()))}
  fun toggleHabit(v:HabitEntity)=viewModelScope.launch{val old=habitLogs.value.firstOrNull{it.habitId==v.id};dao.upsertHabitLog(HabitLogEntity(v.id,today,if((old?.completedCount?:0)>0)0 else 1))}
