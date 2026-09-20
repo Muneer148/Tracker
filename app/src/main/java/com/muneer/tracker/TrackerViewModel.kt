@@ -31,11 +31,16 @@ class TrackerViewModel(app:Application):AndroidViewModel(app){
  val notes=dao.knowledgeNotes().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
  init{viewModelScope.launch{dao.upsertDay(DayEntity(id=todayDayId,date=today));dao.insertHabit(HabitEntity(name="Study / learning"));dao.insertHabit(HabitEntity(name="Exercise"));dao.insertHabit(HabitEntity(name="Sleep on time"))}}
  fun addTask(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertTask(TaskEntity(dayId=todayDayId,title=v.trim()))}
+ fun deleteTask(v:TaskEntity)=viewModelScope.launch{dao.deleteTask(v)}
  fun toggleTask(v:TaskEntity)=viewModelScope.launch{dao.updateTask(v.copy(completed=!v.completed,updatedAt=System.currentTimeMillis()))}
  fun toggleHabit(v:HabitEntity)=viewModelScope.launch{val old=habitLogs.value.firstOrNull{it.habitId==v.id};dao.upsertHabitLog(HabitLogEntity(v.id,today,if((old?.completedCount?:0)>0)0 else 1))}
  fun addHabit(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertHabit(HabitEntity(name=v.trim()))}
+ fun deleteHabit(v:HabitEntity)=viewModelScope.launch{dao.deleteHabit(v)}
  fun addActivity(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertActivity(ActivityEntity(date=today,type="GENERAL",title=v.trim()))}
  fun addGoal(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertGoal(GoalEntity(title=v.trim()))}
+ fun deleteGoal(v:GoalEntity)=viewModelScope.launch{dao.deleteGoal(v)}
+ fun deleteProject(v:ProjectEntity)=viewModelScope.launch{dao.deleteProject(v)}
+ fun deleteJournal(v:JournalEntryEntity)=viewModelScope.launch{dao.deleteJournal(v)}
  fun updateGoal(v:GoalEntity,p:Int)=viewModelScope.launch{dao.updateGoal(v.copy(progress=p.coerceIn(0,100),updatedAt=System.currentTimeMillis()))}
  fun addProject(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertProject(ProjectEntity(name=v.trim()))}
  fun addJournal(t:String,c:String)=viewModelScope.launch{if(t.isNotBlank()||c.isNotBlank())dao.insertJournal(JournalEntryEntity(date=today,title=t.trim(),content=c.trim()))}
