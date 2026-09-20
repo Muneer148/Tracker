@@ -24,6 +24,10 @@ class TrackerViewModel(app:Application):AndroidViewModel(app){
  val topics=dao.studyTopics().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
  val sessions=dao.studySessions().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
  val assessments=dao.assessments().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
+ val weeklyReviews=dao.weeklyReviews().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
+ val completedTasks=dao.completedTaskCount().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),0)
+ val totalStudyMinutes=dao.totalStudyMinutes().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),0)
+ val journalCount=dao.journalCount().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),0)
  val notes=dao.knowledgeNotes().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
  init{viewModelScope.launch{dao.upsertDay(DayEntity(id=todayDayId,date=today));dao.insertHabit(HabitEntity(name="Study / learning"));dao.insertHabit(HabitEntity(name="Exercise"));dao.insertHabit(HabitEntity(name="Sleep on time"))}}
  fun addTask(v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertTask(TaskEntity(dayId=todayDayId,title=v.trim()))}
@@ -39,5 +43,6 @@ class TrackerViewModel(app:Application):AndroidViewModel(app){
  fun addTopic(subjectId:String,v:String)=viewModelScope.launch{if(v.isNotBlank())dao.insertTopic(StudyTopicEntity(subjectId=subjectId,name=v.trim()))}
  fun addSession(v:String,m:Int)=viewModelScope.launch{if(v.isNotBlank()&&m>0)dao.insertStudySession(StudySessionEntity(date=today,subjectId=null,topicId=null,title=v.trim(),durationMinutes=m))}
  fun addAssessment(v:String,s:Double,t:Double)=viewModelScope.launch{if(v.isNotBlank()&&t>0)dao.insertAssessment(AssessmentEntity(date=today,subjectId=null,title=v.trim(),score=s,total=t))}
+ fun addWeeklyReview(week:String,wins:String,blockers:String,next:String)=viewModelScope.launch{dao.insertWeeklyReview(WeeklyReviewEntity(weekStart=week,wins=wins,blockers=blockers,nextFocus=next))}
  fun addNote(t:String,c:String)=viewModelScope.launch{if(t.isNotBlank()&&c.isNotBlank())dao.insertKnowledgeNote(KnowledgeNoteEntity(topicId=null,title=t.trim(),content=c.trim()))}
 }
