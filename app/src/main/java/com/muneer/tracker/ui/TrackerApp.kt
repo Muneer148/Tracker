@@ -45,13 +45,16 @@ import com.muneer.tracker.data.*
   items(vm.notes.take(10)){x->Text("• "+x.title+": "+x.content.take(120))}
  }}
 @Composable private fun Goals(vm:TrackerViewModel,m:Modifier){
- var goal by remember{mutableStateOf("")};var project by remember{mutableStateOf("")}
+ var goal by remember{mutableStateOf("")};var project by remember{mutableStateOf("")};var wins by remember{mutableStateOf("")};var blockers by remember{mutableStateOf("")};var next by remember{mutableStateOf("")}
  LazyColumn(m.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
   item{Text("Goals & Projects",style=MaterialTheme.typography.headlineSmall)}
+  item{Text("Personal analytics",style=MaterialTheme.typography.titleLarge);Text("Completed tasks: "+vm.completedTasks.value);Text("Study time: "+vm.totalStudyMinutes.value+" min");Text("Journal entries: "+vm.journalCount.value)}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(goal,{goal=it},Modifier.weight(1f),label={Text("Goal")});Button({vm.addGoal(goal);goal=""}){Text("Add")}}}
   items(vm.goals){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(x.title,style=MaterialTheme.typography.titleMedium);LinearProgressIndicator(progress={x.progress/100f},Modifier.fillMaxWidth());Text(x.progress.toString()+"%")}}}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(project,{project=it},Modifier.weight(1f),label={Text("Project")});Button({vm.addProject(project);project=""}){Text("Add")}}}
   items(vm.projects){x->Text("• "+x.name+" — "+x.status)}
+  item{Text("Weekly review",style=MaterialTheme.typography.titleLarge);OutlinedTextField(wins,{wins=it},Modifier.fillMaxWidth(),label={Text("Wins")});OutlinedTextField(blockers,{blockers=it},Modifier.fillMaxWidth(),label={Text("Blockers")});OutlinedTextField(next,{next=it},Modifier.fillMaxWidth(),label={Text("Next focus")});Button({vm.addWeeklyReview(vm.today,wins,blockers,next);wins="";blockers="";next=""}){Text("Save review")}}
+  items(vm.weeklyReviews.take(4)){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(x.weekStart,style=MaterialTheme.typography.titleMedium);Text("Wins: "+x.wins);Text("Blockers: "+x.blockers);Text("Next: "+x.nextFocus)}}}
  }}
 @Composable private fun Journal(vm:TrackerViewModel,m:Modifier){
  var title by remember{mutableStateOf("")};var body by remember{mutableStateOf("")}
