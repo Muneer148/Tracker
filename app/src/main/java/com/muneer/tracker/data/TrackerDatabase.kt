@@ -35,6 +35,36 @@ data class WeeklyReviewEntity(@PrimaryKey val id:String=UUID.randomUUID().toStri
 data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toString(),val topicId:String?,val title:String,val content:String,val tags:String="",val reviewDate:String?=null,val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=System.currentTimeMillis())
 
 @Dao interface TrackerDao{
+ @Query("DELETE FROM days") suspend fun clearDays()
+ @Query("DELETE FROM tasks") suspend fun clearTasks()
+ @Query("DELETE FROM habits") suspend fun clearHabits()
+ @Query("DELETE FROM habit_logs") suspend fun clearHabitLogs()
+ @Query("DELETE FROM activities") suspend fun clearActivities()
+ @Query("DELETE FROM goals") suspend fun clearGoals()
+ @Query("DELETE FROM projects") suspend fun clearProjects()
+ @Query("DELETE FROM journal_entries") suspend fun clearJournalEntries()
+ @Query("DELETE FROM study_subjects") suspend fun clearStudySubjects()
+ @Query("DELETE FROM study_topics") suspend fun clearStudyTopics()
+ @Query("DELETE FROM study_sessions") suspend fun clearStudySessions()
+ @Query("DELETE FROM assessments") suspend fun clearAssessments()
+ @Query("DELETE FROM knowledge_notes") suspend fun clearKnowledgeNotes()
+ @Query("DELETE FROM weekly_reviews") suspend fun clearWeeklyReviews()
+
+ @Insert suspend fun insertDays(items:List<DayEntity>)
+ @Insert suspend fun insertTasks(items:List<TaskEntity>)
+ @Insert suspend fun insertHabits(items:List<HabitEntity>)
+ @Insert suspend fun insertHabitLogs(items:List<HabitLogEntity>)
+ @Insert suspend fun insertActivities(items:List<ActivityEntity>)
+ @Insert suspend fun insertGoals(items:List<GoalEntity>)
+ @Insert suspend fun insertProjects(items:List<ProjectEntity>)
+ @Insert suspend fun insertJournalEntries(items:List<JournalEntryEntity>)
+ @Insert suspend fun insertStudySubjects(items:List<StudySubjectEntity>)
+ @Insert suspend fun insertStudyTopics(items:List<StudyTopicEntity>)
+ @Insert suspend fun insertStudySessions(items:List<StudySessionEntity>)
+ @Insert suspend fun insertAssessments(items:List<AssessmentEntity>)
+ @Insert suspend fun insertKnowledgeNotes(items:List<KnowledgeNoteEntity>)
+ @Insert suspend fun insertWeeklyReviews(items:List<WeeklyReviewEntity>)
+
  @Query("SELECT * FROM days ORDER BY date ASC") suspend fun allDays():List<DayEntity>
  @Query("SELECT * FROM tasks ORDER BY createdAt ASC") suspend fun allTasks():List<TaskEntity>
  @Query("SELECT * FROM habits ORDER BY createdAt ASC") suspend fun allHabits():List<HabitEntity>
