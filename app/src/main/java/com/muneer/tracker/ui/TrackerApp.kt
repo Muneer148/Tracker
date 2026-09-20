@@ -3,6 +3,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -13,8 +17,8 @@ import com.muneer.tracker.data.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun TrackerApp(vm:TrackerViewModel){
  var tab by remember{mutableStateOf(0)}
- val tabs=listOf("Today","Study","Goals","Journal")
- Scaffold(topBar={TopAppBar(title={Text("Tracker")})},bottomBar={NavigationBar{tabs.forEachIndexed{i,l->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={},label={Text(l)})}}}){p->when(tab){0->Today(vm,Modifier.padding(p));1->Study(vm,Modifier.padding(p));2->Goals(vm,Modifier.padding(p));else->Journal(vm,Modifier.padding(p))}}}
+ val tabs=listOf("Today","Study","Goals","Journal","Settings")
+ Scaffold(topBar={TopAppBar(title={Text("Tracker")})},bottomBar={NavigationBar{tabs.forEachIndexed{i,l->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={},label={Text(l)})}}}){p->when(tab){0->Today(vm,Modifier.padding(p));1->Study(vm,Modifier.padding(p));2->Goals(vm,Modifier.padding(p));3->Journal(vm,Modifier.padding(p));else->Settings(vm,Modifier.padding(p))}}}
 
 @Composable private fun Today(vm:TrackerViewModel,m:Modifier){
  var task by remember{mutableStateOf("")};var habit by remember{mutableStateOf("")};var activity by remember{mutableStateOf("")}
@@ -82,3 +86,75 @@ import com.muneer.tracker.data.*
   item{Button({vm.addJournal(title,body);title="";body=""}){Text("Save entry")}}
   items(journal){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(if(x.title.isBlank())x.date else x.title,style=MaterialTheme.typography.titleMedium);Text(x.content);Text(x.date,style=MaterialTheme.typography.labelSmall);TextButton({vm.deleteJournal(x)}){Text("Delete")}}}}
  }}
+
+@Composable
+private fun Settings(vm: TrackerViewModel, m: Modifier) {
+    val context = LocalContext.current
+    var exporting by remember { mutableStateOf(false) }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri == null) {
+            exporting = false
+            return@rememberLauncherForActivityResult
+        }
+        LaunchedEffectKey.export(context, vm, uri) { exporting = false }
+    }
+
+    LazyColumn(
+        m.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text("Settings", style = MaterialTheme.typography.headlineSmall)
+            Text("Data", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Export a portable JSON backup of all Tracker data. Keep the file somewhere secure because it may contain journal and study content.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+        item {
+            Button(
+                enabled = !exporting,
+                onClick = {
+                    exporting = true
+                    val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                        .format(java.util.Date())
+                    launcher.launch("tracker-backup-$date.json")
+                }
+            ) {
+                Text(if (exporting) "Preparing…" else "Export Backup")
+            }
+        }
+        item {
+            Text(
+                "Restore/import will be added after export validation and recovery tests.",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+private object LaunchedEffectKey {
+    @Composable
+    fun export(
+        context: android.content.Context,
+        vm: TrackerViewModel,
+        uri: android.net.Uri,
+        onDone: () -> Unit
+    ) {
+        LaunchedEffect(uri) {
+            runCatching {
+                val json = vm.createBackupJson()
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    output.writer(Charsets.UTF_8).use { it.write(json) }
+                } ?: error("Could not open the selected file.")
+            }.onSuccess {
+                Toast.makeText(context, "Backup exported successfully.", Toast.LENGTH_LONG).show()
+            }.onFailure {
+                Toast.makeText(context, "Backup export failed: ${it.message}", Toast.LENGTH_LONG).show()
+            }
+            onDone()
+        }
+    }
+}
