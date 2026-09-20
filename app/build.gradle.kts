@@ -56,6 +56,8 @@ dependencies {
 
   ksp(libs.androidx.room.compiler)
 
+  testImplementation(libs.androidx.core)
+
   testImplementation(libs.junit)
   testImplementation(libs.androidx.junit)
   testImplementation(libs.kotlinx.coroutines.test)
@@ -68,4 +70,11 @@ dependencies {
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.runner)
+}
+
+
+ksp {
+  arg("room.schemaLocation", "$projectDir/schemas")
+  arg("room.generateKotlin", "true")
+  arg("room.incremental", "true")
 }
