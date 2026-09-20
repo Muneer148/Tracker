@@ -28,6 +28,9 @@ data class StudyTopicEntity(@PrimaryKey val id:String=UUID.randomUUID().toString
 data class StudySessionEntity(@PrimaryKey val id:String=UUID.randomUUID().toString(),val date:String,val subjectId:String?,val topicId:String?,val title:String,val durationMinutes:Int,val quality:Int=3,val notes:String="",val createdAt:Long=System.currentTimeMillis())
 @Entity(tableName="assessments",indices=[Index("date"),Index("subjectId")])
 data class AssessmentEntity(@PrimaryKey val id:String=UUID.randomUUID().toString(),val date:String,val subjectId:String?,val title:String,val score:Double,val total:Double,val mistakes:String="",val createdAt:Long=System.currentTimeMillis())
+@Entity(tableName="weekly_reviews", indices=[Index(value=["weekStart"], unique=true)])
+data class WeeklyReviewEntity(@PrimaryKey val id:String=UUID.randomUUID().toString(),val weekStart:String,val wins:String="",val blockers:String="",val nextFocus:String="",val createdAt:Long=System.currentTimeMillis())
+
 @Entity(tableName="knowledge_notes",indices=[Index("topicId"),Index("updatedAt")])
 data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toString(),val topicId:String?,val title:String,val content:String,val tags:String="",val reviewDate:String?=null,val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=System.currentTimeMillis())
 
@@ -57,10 +60,15 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Query("SELECT * FROM study_sessions ORDER BY date DESC,createdAt DESC") fun studySessions():Flow<List<StudySessionEntity>>
  @Insert fun insertAssessment(assessment:AssessmentEntity)
  @Query("SELECT * FROM assessments ORDER BY date DESC,createdAt DESC") fun assessments():Flow<List<AssessmentEntity>>
+ @Insert fun insertWeeklyReview(review:WeeklyReviewEntity)
+ @Query("SELECT * FROM weekly_reviews ORDER BY weekStart DESC") fun weeklyReviews():Flow<List<WeeklyReviewEntity>>
+ @Query("SELECT COUNT(*) FROM tasks WHERE completed=1") fun completedTaskCount():Flow<Int>
+ @Query("SELECT COALESCE(SUM(durationMinutes),0) FROM study_sessions") fun totalStudyMinutes():Flow<Int>
+ @Query("SELECT COUNT(*) FROM journal_entries") fun journalCount():Flow<Int>
  @Insert fun insertKnowledgeNote(note:KnowledgeNoteEntity)
  @Query("SELECT * FROM knowledge_notes ORDER BY updatedAt DESC") fun knowledgeNotes():Flow<List<KnowledgeNoteEntity>>
 }
-@Database(entities=[DayEntity::class,TaskEntity::class,HabitEntity::class,HabitLogEntity::class,ActivityEntity::class,GoalEntity::class,ProjectEntity::class,JournalEntryEntity::class,StudySubjectEntity::class,StudyTopicEntity::class,StudySessionEntity::class,AssessmentEntity::class,KnowledgeNoteEntity::class],version=1,exportSchema=false)
+@Database(entities=[DayEntity::class,TaskEntity::class,HabitEntity::class,HabitLogEntity::class,ActivityEntity::class,GoalEntity::class,ProjectEntity::class,JournalEntryEntity::class,StudySubjectEntity::class,StudyTopicEntity::class,StudySessionEntity::class,AssessmentEntity::class,KnowledgeNoteEntity::class,WeeklyReviewEntity::class],version=1,exportSchema=false)
 abstract class TrackerDatabase:RoomDatabase(){
  abstract fun trackerDao():TrackerDao
  companion object{
