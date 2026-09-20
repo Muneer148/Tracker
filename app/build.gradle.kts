@@ -10,15 +10,15 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  namespace = "com.muneer.tracker"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.gateprep.btech"
+    applicationId = "com.muneer.tracker"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0"
+    versionName = "2.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
