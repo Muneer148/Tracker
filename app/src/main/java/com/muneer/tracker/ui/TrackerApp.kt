@@ -87,11 +87,42 @@ import com.muneer.tracker.data.*
   items(journal){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(if(x.title.isBlank())x.date else x.title,style=MaterialTheme.typography.titleMedium);Text(x.content);Text(x.date,style=MaterialTheme.typography.labelSmall);TextButton({vm.deleteJournal(x)}){Text("Delete")}}}}
  }}
 
+private object LaunchedEffectBridge {
+    @Composable
+    fun restore(context: android.content.Context, vm: TrackerViewModel, json: String, onDone: () -> Unit) {
+        LaunchedEffect(json) {
+            runCatching { vm.restoreBackupJson(json) }
+                .onSuccess { Toast.makeText(context, "Backup restored successfully.", Toast.LENGTH_LONG).show() }
+                .onFailure { Toast.makeText(context, "Restore failed: ${it.message}", Toast.LENGTH_LONG).show() }
+            onDone()
+        }
+    }
+}
+
 @Composable
 private fun Settings(vm: TrackerViewModel, m: Modifier) {
     val context = LocalContext.current
     var exporting by remember { mutableStateOf(false) }
     var pendingUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var pendingImport by remember { mutableStateOf<String?>(null) }
+    var importError by remember { mutableStateOf<String?>(null) }
+    var showRestoreConfirm by remember { mutableStateOf(false) }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.openInputStream(uri)?.use { it.reader(Charsets.UTF_8).readText() }
+                ?: error("Could not open the selected backup.")
+        }.onSuccess {
+            importError = null
+            pendingImport = it
+            showRestoreConfirm = true
+        }.onFailure {
+            importError = it.message ?: "Could not read the backup."
+        }
+    )
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -115,6 +146,28 @@ private fun Settings(vm: TrackerViewModel, m: Modifier) {
         exporting = false
     }
 
+    if (showRestoreConfirm) {
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirm = false; pendingImport = null },
+            title = { Text("Restore backup?") },
+            text = { Text("This will replace all current Tracker data with the selected backup. Make sure you have an up-to-date export before continuing.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val json = pendingImport
+                    showRestoreConfirm = false
+                    pendingImport = null
+                    if (json != null) {
+                        exporting = true
+                        LaunchedEffectBridge.restore(context, vm, json) {
+                            exporting = false
+                        }
+                    }
+                }) { Text("Restore") }
+            },
+            dismissButton = { TextButton(onClick = { showRestoreConfirm=false; pendingImport=null }) { Text("Cancel") } }
+        )
+    }
+
     LazyColumn(
         m.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -126,6 +179,12 @@ private fun Settings(vm: TrackerViewModel, m: Modifier) {
                 "Export a portable JSON backup of all Tracker data. Keep the file somewhere secure because it may contain journal and study content.",
                 style = MaterialTheme.typography.bodyMedium
             )
+        }
+        item {
+            Button(
+                enabled = !exporting,
+                onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }
+            ) { Text("Import Backup") }
         }
         item {
             Button(
