@@ -111,7 +111,7 @@ private fun Settings(vm: TrackerViewModel, m: Modifier) {
         }.onFailure {
             importError = it.message ?: "Could not read the backup."
         }
-    )
+    }
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -176,10 +176,46 @@ private fun Settings(vm: TrackerViewModel, m: Modifier) {
             }
         }
         item {
+            importError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
             Text(
-                "Restore/import will be added after export validation and recovery tests.",
+                "Import replaces the current local Tracker data after confirmation.",
                 style = MaterialTheme.typography.bodySmall
             )
         }
+    }
+
+    if (showRestoreConfirm) {
+        AlertDialog(
+            onDismissRequest = {
+                showRestoreConfirm = false
+                pendingImport = null
+            },
+            title = { Text("Restore backup?") },
+            text = {
+                Text(
+                    "This will replace all current Tracker data with the selected backup. " +
+                        "Make sure you have an up-to-date export before continuing."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingRestoreJson = pendingImport
+                        pendingImport = null
+                        showRestoreConfirm = false
+                    }
+                ) { Text("Restore") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRestoreConfirm = false
+                        pendingImport = null
+                    }
+                ) { Text("Cancel") }
+            }
+        )
     }
 }
