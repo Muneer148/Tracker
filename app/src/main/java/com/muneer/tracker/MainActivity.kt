@@ -10,5 +10,5 @@ import com.example.ui.theme.MyApplicationTheme
 import com.muneer.tracker.ui.TrackerApp
 class MainActivity:ComponentActivity(){
  private val vm:TrackerViewModel by viewModels()
- override fun onCreate(state:Bundle?){super.onCreate(state);setContent{MyApplicationTheme{Surface(Modifier.fillMaxSize()){TrackerApp(vm)}}}}
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MyApplicationTheme{Surface(Modifier.fillMaxSize()){TrackerApp(vm)}}}}
 }
