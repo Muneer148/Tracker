@@ -32,11 +32,12 @@ data class AssessmentEntity(@PrimaryKey val id:String=UUID.randomUUID().toString
 data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toString(),val topicId:String?,val title:String,val content:String,val tags:String="",val reviewDate:String?=null,val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=System.currentTimeMillis())
 
 @Dao interface TrackerDao{
+ @Insert(onConflict=OnConflictStrategy.REPLACE) fun upsertDay(day:DayEntity)
  @Query("SELECT * FROM tasks WHERE dayId=:dayId ORDER BY completed ASC,priority ASC,createdAt ASC") fun tasksForDay(dayId:String):Flow<List<TaskEntity>>
  @Insert fun insertTask(task:TaskEntity)
  @Update fun updateTask(task:TaskEntity)
  @Query("SELECT * FROM habits WHERE active=1 ORDER BY name") fun activeHabits():Flow<List<HabitEntity>>
- @Insert fun insertHabit(habit:HabitEntity)
+ @Insert(onConflict=OnConflictStrategy.IGNORE) fun insertHabit(habit:HabitEntity)
  @Query("SELECT * FROM habit_logs WHERE date=:date") fun habitLogsForDate(date:String):Flow<List<HabitLogEntity>>
  @Insert(onConflict=OnConflictStrategy.REPLACE) fun upsertHabitLog(log:HabitLogEntity)
  @Insert fun insertActivity(activity:ActivityEntity)
@@ -59,7 +60,7 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Insert fun insertKnowledgeNote(note:KnowledgeNoteEntity)
  @Query("SELECT * FROM knowledge_notes ORDER BY updatedAt DESC") fun knowledgeNotes():Flow<List<KnowledgeNoteEntity>>
 }
-@Database(entities=[DayEntity::class,TaskEntity::class,HabitEntity::class,HabitLogEntity::class,ActivityEntity::class,GoalEntity::class,ProjectEntity::class,JournalEntryEntity::class,StudySubjectEntity::class,StudyTopicEntity::class,StudySessionEntity::class,AssessmentEntity::class,KnowledgeNoteEntity::class],version=1,exportSchema=true)
+@Database(entities=[DayEntity::class,TaskEntity::class,HabitEntity::class,HabitLogEntity::class,ActivityEntity::class,GoalEntity::class,ProjectEntity::class,JournalEntryEntity::class,StudySubjectEntity::class,StudyTopicEntity::class,StudySessionEntity::class,AssessmentEntity::class,KnowledgeNoteEntity::class],version=1,exportSchema=false)
 abstract class TrackerDatabase:RoomDatabase(){
  abstract fun trackerDao():TrackerDao
  companion object{
