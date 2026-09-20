@@ -1,6 +1,7 @@
 package com.muneer.tracker
 
 import androidx.room.Room
+import kotlinx.coroutines.runBlocking
 import com.muneer.tracker.data.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -52,7 +53,7 @@ class TrackerBackupTest {
         )
     }
 
-    private fun insert(data: TrackerBackup.RestoreData) {
+    private suspend fun insert(data: TrackerBackup.RestoreData) {
         val d = database.trackerDao()
         d.insertDays(data.days); d.insertGoals(data.goals); d.insertProjects(data.projects)
         d.insertHabits(data.habits); d.insertTasks(data.tasks); d.insertHabitLogs(data.habitLogs)
@@ -62,7 +63,7 @@ class TrackerBackupTest {
         d.insertKnowledgeNotes(data.knowledgeNotes); d.insertWeeklyReviews(data.weeklyReviews)
     }
 
-    private fun exportCurrent(): String {
+    private suspend fun exportCurrent(): String {
         val d = database.trackerDao()
         return TrackerBackup.createJson(
             d.allDays(), d.allTasks(), d.allHabits(), d.allHabitLogs(), d.allActivities(),
@@ -150,7 +151,7 @@ class TrackerBackupTest {
     }
 
     @Test
-    fun restoreRoundTripReplacesDatabaseWithBackup() {
+    fun restoreRoundTripReplacesDatabaseWithBackup() = runBlocking {
         val original = sampleData()
         insert(original)
         val backup = TrackerBackup.parseAndValidate(exportCurrent())
@@ -177,7 +178,7 @@ class TrackerBackupTest {
     }
 
     @Test
-    fun restoreRollsBackWhenTransactionFails() {
+    fun restoreRollsBackWhenTransactionFails() = runBlocking {
         val existing = DayEntity("existing", "2026-09-20", "Keep", 1L, 1L)
         database.trackerDao().insertDays(listOf(existing))
         val invalid = sampleData().copy(
