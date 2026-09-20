@@ -15,12 +15,13 @@ import com.muneer.tracker.data.*
  Scaffold(topBar={TopAppBar(title={Text("Tracker")})},bottomBar={NavigationBar{tabs.forEachIndexed{i,l->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={},label={Text(l)})}}}){p->when(tab){0->Today(vm,Modifier.padding(p));1->Study(vm,Modifier.padding(p));2->Goals(vm,Modifier.padding(p));else->Journal(vm,Modifier.padding(p))}}}
 
 @Composable private fun Today(vm:TrackerViewModel,m:Modifier){
- var task by remember{mutableStateOf("")};var activity by remember{mutableStateOf("")}
+ var task by remember{mutableStateOf("")};var habit by remember{mutableStateOf("")};var activity by remember{mutableStateOf("")}
  LazyColumn(m.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
   item{Text("Today",style=MaterialTheme.typography.headlineSmall);Text(vm.today,style=MaterialTheme.typography.labelMedium)}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(task,{task=it},Modifier.weight(1f),label={Text("New task")});Button({vm.addTask(task);task=""}){Text("Add")}}}
   item{Text("Tasks",style=MaterialTheme.typography.titleLarge)}
   items(vm.tasks){x->ElevatedCard(Modifier.fillMaxWidth()){Row(Modifier.fillMaxWidth().padding(12.dp),horizontalArrangement=Arrangement.SpaceBetween){Text(if(x.completed)"✓ "+x.title else x.title);TextButton({vm.toggleTask(x)}){Text(if(x.completed)"Undo" else "Done")}}}}
+  item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(habit,{habit=it},Modifier.weight(1f),label={Text("New habit")});Button({vm.addHabit(habit);habit=""}){Text("Add")}}}
   item{Text("Habits",style=MaterialTheme.typography.titleLarge)}
   items(vm.habits){x->val done=vm.habitLogs.any{it.habitId==x.id&&it.completedCount>0};ElevatedCard(Modifier.fillMaxWidth()){Row(Modifier.fillMaxWidth().padding(12.dp),horizontalArrangement=Arrangement.SpaceBetween){Text(if(done)"✓ "+x.name else x.name);TextButton({vm.toggleHabit(x)}){Text(if(done)"Undo" else "Done")}}}}
   item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(activity,{activity=it},Modifier.weight(1f),label={Text("Log activity")});Button({vm.addActivity(activity);activity=""}){Text("Log")}}}
