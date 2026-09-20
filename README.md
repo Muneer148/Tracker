@@ -6,7 +6,7 @@ A personal productivity and study-tracking application being rebuilt from the cu
 
 ## Project Status
 
-**Current stage:** V1 prototype / foundation investigation  
+**Current stage:** V2.2 personal Android foundation implemented; hardening and verification in progress  
 **Active development branch:** `dev`  
 **Stable branch:** `main`
 
@@ -543,19 +543,32 @@ The priority is **correctness, reliability, maintainability and real daily usefu
 
 ---
 
-## Current Next Step
+## Current Implementation Status
 
-The next development task is to finish the V1 repository audit and establish the V2 foundation on the `dev` branch:
+The `dev` branch now contains the first clean V2 personal foundation:
 
-1. Verify the complete current source tree.
-2. Identify reusable V1 components.
-3. Identify code that should be replaced.
-4. Define the V2 package/module structure.
-5. Design the Room schema.
-6. Implement the core Day/Task/Habit/Activity models.
-7. Build the Today screen.
-8. Add tests.
-9. Only then begin the Study module.
+- V2 Android application identity (`com.muneer.tracker`)
+- Separate V2 Room database (`tracker_v2.db`)
+- Day / Task / Habit / HabitLog / Activity models
+- Today screen
+- Study subjects / topics / sessions
+- Assessment logging
+- Knowledge notes
+- Goals and projects
+- Journal entries
+- GitHub Actions Android build workflow
+- `main` remains untouched by V2 development
+
+## Remaining V2.2 Hardening
+
+1. Add focused unit/database tests for the new domain.
+2. Add proper task/goal/project editing and deletion flows.
+3. Add recurring tasks and reminders.
+4. Add weekly review and analytics derived from source records.
+5. Add backup/export and restore.
+6. Add adaptive layouts and accessibility verification on the Oppo F17 Pro and larger screens.
+7. Complete the sync/outbox design before introducing cloud synchronization.
+8. Build the web client only after the Android/domain model is stable.
 
 ---
 
