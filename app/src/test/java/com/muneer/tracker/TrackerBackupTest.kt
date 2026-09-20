@@ -132,6 +132,24 @@ class TrackerBackupTest {
     }
 
     @Test
+    fun parseAndValidateRejectsMalformedScalarType() {
+        val json = JSONObject(TrackerBackup.createJson(
+            days = listOf(DayEntity("d1", "2026-09-20")),
+            tasks = emptyList(), habits = emptyList(), habitLogs = emptyList(), activities = emptyList(),
+            goals = emptyList(), projects = emptyList(), journalEntries = emptyList(), studySubjects = emptyList(),
+            studyTopics = emptyList(), studySessions = emptyList(), assessments = emptyList(),
+            knowledgeNotes = emptyList(), weeklyReviews = emptyList()
+        ))
+        json.getJSONArray("days").getJSONObject(0).put("createdAt", "not-a-number")
+        try {
+            TrackerBackup.parseAndValidate(json.toString())
+            throw AssertionError("Expected validation failure")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("createdAt"))
+        }
+    }
+
+    @Test
     fun restoreRoundTripReplacesDatabaseWithBackup() {
         val original = sampleData()
         insert(original)
