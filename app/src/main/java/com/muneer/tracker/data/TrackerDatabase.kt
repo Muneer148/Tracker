@@ -35,42 +35,42 @@ data class WeeklyReviewEntity(@PrimaryKey val id:String=UUID.randomUUID().toStri
 data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toString(),val topicId:String?,val title:String,val content:String,val tags:String="",val reviewDate:String?=null,val createdAt:Long=System.currentTimeMillis(),val updatedAt:Long=System.currentTimeMillis())
 
 @Dao interface TrackerDao{
- @Insert(onConflict=OnConflictStrategy.REPLACE) fun upsertDay(day:DayEntity)
+ @Insert(onConflict=OnConflictStrategy.REPLACE) suspend fun upsertDay(day:DayEntity)
  @Query("SELECT * FROM tasks WHERE dayId=:dayId ORDER BY completed ASC,priority ASC,createdAt ASC") fun tasksForDay(dayId:String):Flow<List<TaskEntity>>
- @Insert fun insertTask(task:TaskEntity)
- @Update fun updateTask(task:TaskEntity)
- @Delete fun deleteTask(task:TaskEntity)
- @Delete fun deleteHabit(habit:HabitEntity)
+ @Insert suspend fun insertTask(task:TaskEntity)
+ @Update suspend fun updateTask(task:TaskEntity)
+ @Delete suspend fun deleteTask(task:TaskEntity)
+ @Delete suspend fun deleteHabit(habit:HabitEntity)
  @Query("SELECT * FROM habits WHERE active=1 ORDER BY name") fun activeHabits():Flow<List<HabitEntity>>
- @Insert(onConflict=OnConflictStrategy.IGNORE) fun insertHabit(habit:HabitEntity)
+ @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insertHabit(habit:HabitEntity)
  @Query("SELECT * FROM habit_logs WHERE date=:date") fun habitLogsForDate(date:String):Flow<List<HabitLogEntity>>
- @Insert(onConflict=OnConflictStrategy.REPLACE) fun upsertHabitLog(log:HabitLogEntity)
- @Insert fun insertActivity(activity:ActivityEntity)
+ @Insert(onConflict=OnConflictStrategy.REPLACE) suspend fun upsertHabitLog(log:HabitLogEntity)
+ @Insert suspend fun insertActivity(activity:ActivityEntity)
  @Query("SELECT * FROM activities WHERE date=:date ORDER BY createdAt DESC") fun activitiesForDate(date:String):Flow<List<ActivityEntity>>
  @Query("SELECT * FROM goals ORDER BY status,targetDate") fun goals():Flow<List<GoalEntity>>
- @Insert fun insertGoal(goal:GoalEntity)
- @Update fun updateGoal(goal:GoalEntity)
- @Delete fun deleteGoal(goal:GoalEntity)
- @Delete fun deleteProject(project:ProjectEntity)
+ @Insert suspend fun insertGoal(goal:GoalEntity)
+ @Update suspend fun updateGoal(goal:GoalEntity)
+ @Delete suspend fun deleteGoal(goal:GoalEntity)
+ @Delete suspend fun deleteProject(project:ProjectEntity)
  @Query("SELECT * FROM projects ORDER BY status,name") fun projects():Flow<List<ProjectEntity>>
- @Insert fun insertProject(project:ProjectEntity)
+ @Insert suspend fun insertProject(project:ProjectEntity)
  @Query("SELECT * FROM journal_entries ORDER BY date DESC,updatedAt DESC") fun journal():Flow<List<JournalEntryEntity>>
- @Insert fun insertJournal(entry:JournalEntryEntity)
- @Delete fun deleteJournal(entry:JournalEntryEntity)
+ @Insert suspend fun insertJournal(entry:JournalEntryEntity)
+ @Delete suspend fun deleteJournal(entry:JournalEntryEntity)
  @Query("SELECT * FROM study_subjects WHERE active=1 ORDER BY name") fun studySubjects():Flow<List<StudySubjectEntity>>
- @Insert fun insertSubject(subject:StudySubjectEntity)
+ @Insert suspend fun insertSubject(subject:StudySubjectEntity)
  @Query("SELECT * FROM study_topics ORDER BY status,name") fun studyTopics():Flow<List<StudyTopicEntity>>
- @Insert fun insertTopic(topic:StudyTopicEntity)
- @Insert fun insertStudySession(session:StudySessionEntity)
+ @Insert suspend fun insertTopic(topic:StudyTopicEntity)
+ @Insert suspend fun insertStudySession(session:StudySessionEntity)
  @Query("SELECT * FROM study_sessions ORDER BY date DESC,createdAt DESC") fun studySessions():Flow<List<StudySessionEntity>>
- @Insert fun insertAssessment(assessment:AssessmentEntity)
+ @Insert suspend fun insertAssessment(assessment:AssessmentEntity)
  @Query("SELECT * FROM assessments ORDER BY date DESC,createdAt DESC") fun assessments():Flow<List<AssessmentEntity>>
- @Insert fun insertWeeklyReview(review:WeeklyReviewEntity)
+ @Insert suspend fun insertWeeklyReview(review:WeeklyReviewEntity)
  @Query("SELECT * FROM weekly_reviews ORDER BY weekStart DESC") fun weeklyReviews():Flow<List<WeeklyReviewEntity>>
  @Query("SELECT COUNT(*) FROM tasks WHERE completed=1") fun completedTaskCount():Flow<Int>
  @Query("SELECT COALESCE(SUM(durationMinutes),0) FROM study_sessions") fun totalStudyMinutes():Flow<Int>
  @Query("SELECT COUNT(*) FROM journal_entries") fun journalCount():Flow<Int>
- @Insert fun insertKnowledgeNote(note:KnowledgeNoteEntity)
+ @Insert suspend fun insertKnowledgeNote(note:KnowledgeNoteEntity)
  @Query("SELECT * FROM knowledge_notes ORDER BY updatedAt DESC") fun knowledgeNotes():Flow<List<KnowledgeNoteEntity>>
 }
 @Database(entities=[DayEntity::class,TaskEntity::class,HabitEntity::class,HabitLogEntity::class,ActivityEntity::class,GoalEntity::class,ProjectEntity::class,JournalEntryEntity::class,StudySubjectEntity::class,StudyTopicEntity::class,StudySessionEntity::class,AssessmentEntity::class,KnowledgeNoteEntity::class,WeeklyReviewEntity::class],version=1,exportSchema=false)
