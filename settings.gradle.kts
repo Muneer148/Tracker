@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "GATE 5H Prep"
+rootProject.name = "Tracker"
 
 include(":app")
