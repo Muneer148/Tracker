@@ -125,18 +125,45 @@ object TrackerBackup {
         require(root.has("exportedAt")) { "Backup is missing exportedAt." }
 
         fun array(name: String) = root.optJSONArray(name) ?: error("Backup is missing $name.")
-        fun requiredString(o: JSONObject, key: String) = o.optString(key, "").also {
-            require(it.isNotBlank()) { "Invalid $key in backup." }
+        fun requiredString(o: JSONObject, key: String): String {
+            val value = o.opt(key)
+            require(value is String && value.isNotBlank()) { "Invalid $key in backup." }
+            return value
         }
-        fun requiredLong(o: JSONObject, key: String) = o.optLong(key, Long.MIN_VALUE).also {
-            require(it != Long.MIN_VALUE) { "Invalid $key in backup." }
+        fun requiredLong(o: JSONObject, key: String): Long {
+            val value = o.opt(key)
+            require(value is Number) { "Invalid $key in backup." }
+            return value.toLong()
+        }
+        fun optionalString(o: JSONObject, key: String, default: String = ""): String {
+            if (!o.has(key) || o.isNull(key)) return default
+            val value = o.opt(key)
+            require(value is String) { "Invalid $key in backup." }
+            return value
+        }
+        fun optionalInt(o: JSONObject, key: String, default: Int): Int {
+            if (!o.has(key) || o.isNull(key)) return default
+            val value = o.opt(key)
+            require(value is Number) { "Invalid $key in backup." }
+            return value.toInt()
+        }
+        fun optionalBoolean(o: JSONObject, key: String, default: Boolean): Boolean {
+            if (!o.has(key) || o.isNull(key)) return default
+            val value = o.opt(key)
+            require(value is Boolean) { "Invalid $key in backup." }
+            return value
+        }
+        fun optionalDouble(o: JSONObject, key: String): Double {
+            val value = o.opt(key)
+            require(value is Number) { "Invalid $key in backup." }
+            return value.toDouble()
         }
         fun nullableString(o: JSONObject, key: String): String? =
-            if (o.isNull(key)) null else o.optString(key, "").also { require(it.isNotBlank()) { "Invalid $key in backup." } }
+            if (o.isNull(key)) null else optionalString(o, key).also { require(it.isNotBlank()) { "Invalid $key in backup." } }
         fun nullableLong(o: JSONObject, key: String): Long? =
-            if (o.isNull(key)) null else o.optLong(key, Long.MIN_VALUE).also { require(it != Long.MIN_VALUE) { "Invalid $key in backup." } }
+            if (o.isNull(key)) null else requiredLong(o, key)
         fun nullableInt(o: JSONObject, key: String): Int? =
-            if (o.isNull(key)) null else o.optInt(key, Int.MIN_VALUE).also { require(it != Int.MIN_VALUE) { "Invalid $key in backup." } }
+            if (o.isNull(key)) null else optionalInt(o, key, Int.MIN_VALUE).also { require(it != Int.MIN_VALUE) { "Invalid $key in backup." } }
         fun <T> uniqueIds(items: List<T>, id: (T) -> String) {
             require(items.map(id).toSet().size == items.size) { "Duplicate IDs in backup." }
         }
@@ -145,43 +172,43 @@ object TrackerBackup {
             val a=array("days"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(DayEntity(requiredString(o,"id"),requiredString(o,"date"),o.optString("note",""),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
         }
         val tasks = buildList {
-            val a=array("tasks"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(TaskEntity(requiredString(o,"id"),requiredString(o,"dayId"),requiredString(o,"title"),o.optString("description",""),o.optInt("priority",2),o.optBoolean("completed",false),nullableLong(o,"dueAt"),nullableString(o,"projectId"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
+            val a=array("tasks"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(TaskEntity(requiredString(o,"id"),requiredString(o,"dayId"),requiredString(o,"title"),optionalString(o,"description"),optionalInt(o,"priority",2),optionalBoolean(o,"completed",false),nullableLong(o,"dueAt"),nullableString(o,"projectId"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
         }
         val habits = buildList {
-            val a=array("habits"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(HabitEntity(requiredString(o,"id"),requiredString(o,"name"),o.optString("description",""),o.optInt("targetPerDay",1),o.optBoolean("active",true),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
+            val a=array("habits"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(HabitEntity(requiredString(o,"id"),requiredString(o,"name"),optionalString(o,"description"),optionalInt(o,"targetPerDay",1),optionalBoolean(o,"active",true),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
         }
         val habitLogs = buildList {
-            val a=array("habitLogs"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(HabitLogEntity(requiredString(o,"habitId"),requiredString(o,"date"),o.optInt("completedCount",0),requiredLong(o,"updatedAt")))}
+            val a=array("habitLogs"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(HabitLogEntity(requiredString(o,"habitId"),requiredString(o,"date"),optionalInt(o,"completedCount",0),requiredLong(o,"updatedAt")))}
         }
         val activities = buildList {
-            val a=array("activities"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(ActivityEntity(requiredString(o,"id"),requiredString(o,"date"),requiredString(o,"type"),requiredString(o,"title"),o.optInt("durationMinutes",0),o.optString("metadata",""),requiredLong(o,"createdAt")))}
+            val a=array("activities"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(ActivityEntity(requiredString(o,"id"),requiredString(o,"date"),requiredString(o,"type"),requiredString(o,"title"),optionalInt(o,"durationMinutes",0),optionalString(o,"metadata"),requiredLong(o,"createdAt")))}
         }
         val goals = buildList {
-            val a=array("goals"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(GoalEntity(requiredString(o,"id"),requiredString(o,"title"),o.optString("description",""),nullableString(o,"targetDate"),o.optInt("progress",0),o.optString("status","ACTIVE"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
+            val a=array("goals"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(GoalEntity(requiredString(o,"id"),requiredString(o,"title"),optionalString(o,"description"),nullableString(o,"targetDate"),optionalInt(o,"progress",0),optionalString(o,"status","ACTIVE"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
         }
         val projects = buildList {
-            val a=array("projects"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(ProjectEntity(requiredString(o,"id"),requiredString(o,"name"),o.optString("description",""),o.optString("status","ACTIVE"),nullableString(o,"goalId"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
+            val a=array("projects"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(ProjectEntity(requiredString(o,"id"),requiredString(o,"name"),optionalString(o,"description"),optionalString(o,"status","ACTIVE"),nullableString(o,"goalId"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
         }
         val journalEntries = buildList {
             val a=array("journalEntries"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(JournalEntryEntity(requiredString(o,"id"),requiredString(o,"date"),requiredString(o,"title"),requiredString(o,"content"),nullableInt(o,"mood"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
         }
         val studySubjects = buildList {
-            val a=array("studySubjects"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudySubjectEntity(requiredString(o,"id"),requiredString(o,"name"),o.optString("category","GENERAL"),o.optInt("targetMinutes",0),o.optBoolean("active",true)))}
+            val a=array("studySubjects"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudySubjectEntity(requiredString(o,"id"),requiredString(o,"name"),optionalString(o,"category","GENERAL"),optionalInt(o,"targetMinutes",0),optionalBoolean(o,"active",true)))}
         }
         val studyTopics = buildList {
-            val a=array("studyTopics"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudyTopicEntity(requiredString(o,"id"),requiredString(o,"subjectId"),requiredString(o,"name"),o.optString("status","TODO"),o.optInt("difficulty",2),o.optString("notes",""),requiredLong(o,"updatedAt")))}
+            val a=array("studyTopics"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudyTopicEntity(requiredString(o,"id"),requiredString(o,"subjectId"),requiredString(o,"name"),optionalString(o,"status","TODO"),optionalInt(o,"difficulty",2),optionalString(o,"notes"),requiredLong(o,"updatedAt")))}
         }
         val studySessions = buildList {
-            val a=array("studySessions"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudySessionEntity(requiredString(o,"id"),requiredString(o,"date"),nullableString(o,"subjectId"),nullableString(o,"topicId"),requiredString(o,"title"),o.optInt("durationMinutes",0),o.optInt("quality",3),o.optString("notes",""),requiredLong(o,"createdAt")))}
+            val a=array("studySessions"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudySessionEntity(requiredString(o,"id"),requiredString(o,"date"),nullableString(o,"subjectId"),nullableString(o,"topicId"),requiredString(o,"title"),optionalInt(o,"durationMinutes",0),optionalInt(o,"quality",3),optionalString(o,"notes"),requiredLong(o,"createdAt")))}
         }
         val assessments = buildList {
-            val a=array("assessments"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(AssessmentEntity(requiredString(o,"id"),requiredString(o,"date"),nullableString(o,"subjectId"),requiredString(o,"title"),o.optDouble("score",Double.NaN),o.optDouble("total",Double.NaN),o.optString("mistakes",""),requiredLong(o,"createdAt")));require(last().score.isFinite()&&last().total.isFinite()){"Invalid assessment score."}}
+            val a=array("assessments"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(AssessmentEntity(requiredString(o,"id"),requiredString(o,"date"),nullableString(o,"subjectId"),requiredString(o,"title"),optionalDouble(o,"score"),optionalDouble(o,"total"),optionalString(o,"mistakes"),requiredLong(o,"createdAt")));require(last().score.isFinite()&&last().total.isFinite()){"Invalid assessment score."}}
         }
         val knowledgeNotes = buildList {
-            val a=array("knowledgeNotes"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(KnowledgeNoteEntity(requiredString(o,"id"),nullableString(o,"topicId"),requiredString(o,"title"),requiredString(o,"content"),o.optString("tags",""),nullableString(o,"reviewDate"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
+            val a=array("knowledgeNotes"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(KnowledgeNoteEntity(requiredString(o,"id"),nullableString(o,"topicId"),requiredString(o,"title"),requiredString(o,"content"),optionalString(o,"tags"),nullableString(o,"reviewDate"),requiredLong(o,"createdAt"),requiredLong(o,"updatedAt")))}
         }
         val weeklyReviews = buildList {
-            val a=array("weeklyReviews"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(WeeklyReviewEntity(requiredString(o,"id"),requiredString(o,"weekStart"),o.optString("wins",""),o.optString("blockers",""),o.optString("nextFocus",""),requiredLong(o,"createdAt")))}
+            val a=array("weeklyReviews"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(WeeklyReviewEntity(requiredString(o,"id"),requiredString(o,"weekStart"),optionalString(o,"wins"),optionalString(o,"blockers"),optionalString(o,"nextFocus"),requiredLong(o,"createdAt")))}
         }
 
         uniqueIds(days){it.id}; uniqueIds(tasks){it.id}; uniqueIds(habits){it.id}; uniqueIds(activities){it.id}; uniqueIds(goals){it.id}; uniqueIds(projects){it.id}; uniqueIds(journalEntries){it.id}; uniqueIds(studySubjects){it.id}; uniqueIds(studyTopics){it.id}; uniqueIds(studySessions){it.id}; uniqueIds(assessments){it.id}; uniqueIds(knowledgeNotes){it.id}; uniqueIds(weeklyReviews){it.id}
