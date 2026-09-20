@@ -87,18 +87,6 @@ import com.muneer.tracker.data.*
   items(journal){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(12.dp)){Text(if(x.title.isBlank())x.date else x.title,style=MaterialTheme.typography.titleMedium);Text(x.content);Text(x.date,style=MaterialTheme.typography.labelSmall);TextButton({vm.deleteJournal(x)}){Text("Delete")}}}}
  }}
 
-private object LaunchedEffectBridge {
-    @Composable
-    fun restore(context: android.content.Context, vm: TrackerViewModel, json: String, onDone: () -> Unit) {
-        LaunchedEffect(json) {
-            runCatching { vm.restoreBackupJson(json) }
-                .onSuccess { Toast.makeText(context, "Backup restored successfully.", Toast.LENGTH_LONG).show() }
-                .onFailure { Toast.makeText(context, "Restore failed: ${it.message}", Toast.LENGTH_LONG).show() }
-            onDone()
-        }
-    }
-}
-
 @Composable
 private fun Settings(vm: TrackerViewModel, m: Modifier) {
     val context = LocalContext.current
@@ -107,6 +95,7 @@ private fun Settings(vm: TrackerViewModel, m: Modifier) {
     var pendingImport by remember { mutableStateOf<String?>(null) }
     var importError by remember { mutableStateOf<String?>(null) }
     var showRestoreConfirm by remember { mutableStateOf(false) }
+    var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
 
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -146,26 +135,13 @@ private fun Settings(vm: TrackerViewModel, m: Modifier) {
         exporting = false
     }
 
-    if (showRestoreConfirm) {
-        AlertDialog(
-            onDismissRequest = { showRestoreConfirm = false; pendingImport = null },
-            title = { Text("Restore backup?") },
-            text = { Text("This will replace all current Tracker data with the selected backup. Make sure you have an up-to-date export before continuing.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    val json = pendingImport
-                    showRestoreConfirm = false
-                    pendingImport = null
-                    if (json != null) {
-                        exporting = true
-                        LaunchedEffectBridge.restore(context, vm, json) {
-                            exporting = false
-                        }
-                    }
-                }) { Text("Restore") }
-            },
-            dismissButton = { TextButton(onClick = { showRestoreConfirm=false; pendingImport=null }) { Text("Cancel") } }
-        )
+    LaunchedEffect(pendingRestoreJson) {
+        val json = pendingRestoreJson ?: return@LaunchedEffect
+        runCatching { vm.restoreBackupJson(json) }
+            .onSuccess { Toast.makeText(context, "Backup restored successfully.", Toast.LENGTH_LONG).show() }
+            .onFailure { Toast.makeText(context, "Restore failed: ${it.message}", Toast.LENGTH_LONG).show() }
+        pendingRestoreJson = null
+        exporting = false
     }
 
     LazyColumn(
