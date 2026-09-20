@@ -46,4 +46,54 @@ class TrackerBackupTest {
         assertEquals(1, root.getJSONArray("knowledgeNotes").length())
         assertEquals(1, root.getJSONArray("weeklyReviews").length())
     }
+    @Test
+    fun parseAndValidateRejectsMissingCollection() {
+        val json = JSONObject()
+            .put("formatVersion", TrackerBackup.FORMAT_VERSION)
+            .put("databaseVersion", TrackerBackup.DATABASE_VERSION)
+            .put("exportedAt", 1L)
+            .toString()
+        try {
+            TrackerBackup.parseAndValidate(json)
+            throw AssertionError("Expected validation failure")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("Backup is missing"))
+        }
+    }
+
+    @Test
+    fun parseAndValidateRejectsBrokenReferences() {
+        val json = JSONObject()
+            .put("formatVersion", TrackerBackup.FORMAT_VERSION)
+            .put("databaseVersion", TrackerBackup.DATABASE_VERSION)
+            .put("exportedAt", 1L)
+            .put("days", org.json.JSONArray().put(JSONObject()
+                .put("id","d1").put("date","2026-09-20").put("note","")
+                .put("createdAt",1L).put("updatedAt",1L)))
+            .put("tasks", org.json.JSONArray().put(JSONObject()
+                .put("id","t1").put("dayId","missing").put("title","Task")
+                .put("description","").put("priority",2).put("completed",false)
+                .put("dueAt",JSONObject.NULL).put("projectId",JSONObject.NULL)
+                .put("createdAt",1L).put("updatedAt",1L)))
+            .put("habits", org.json.JSONArray())
+            .put("habitLogs", org.json.JSONArray())
+            .put("activities", org.json.JSONArray())
+            .put("goals", org.json.JSONArray())
+            .put("projects", org.json.JSONArray())
+            .put("journalEntries", org.json.JSONArray())
+            .put("studySubjects", org.json.JSONArray())
+            .put("studyTopics", org.json.JSONArray())
+            .put("studySessions", org.json.JSONArray())
+            .put("assessments", org.json.JSONArray())
+            .put("knowledgeNotes", org.json.JSONArray())
+            .put("weeklyReviews", org.json.JSONArray())
+            .toString()
+        try {
+            TrackerBackup.parseAndValidate(json)
+            throw AssertionError("Expected validation failure")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("Task references"))
+        }
+    }
+
 }
