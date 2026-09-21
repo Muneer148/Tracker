@@ -1,155 +1,339 @@
 # Tracker
 
-A personal productivity and study-tracking application being rebuilt from the current V1 prototype into a clean, offline-first V2.
+Tracker is a personal productivity, planning, study, and habit-tracking Android application.
 
-> **Development rule:** `main` is the stable branch. Active development happens on `dev` and future feature branches. Do not push unfinished V2 work directly to `main`.
+The project is being rebuilt around a reliable **offline-first** core. The long-term product direction is:
 
-## Project Status
+```
+Plan → Schedule → Execute → Track → Review → Adjust
+```
 
-**Current stage:** V2.2 personal offline Android application implemented on `dev`; cloud/multi-account V3 is intentionally out of scope  
-**Active development branch:** `dev`  
-**Stable branch:** `main`
+The eventual goal is to combine:
 
-The repository currently contains an Android Kotlin/Jetpack Compose application originally focused on GATE and placement preparation. V2 will rebuild Tracker as a broader personal operating system while preserving useful study functionality.
-
-The existing V1 code is treated as a **reference/prototype**, not as an architecture that V2 must preserve.
+- Tasks and daily planning
+- Habits
+- Activities and time tracking
+- Goals and projects
+- Study planning and study sessions
+- Journal and knowledge notes
+- Reviews and analytics
+- Reminders and alarms
+- Deterministic scheduling
+- Optional AI-assisted planning
+- Cloud sync and web access later
 
 ---
 
-## V1 — Existing Prototype
+## Current Status
 
-### What V1 currently is
+**Current milestone: V2 foundation complete and stable on `dev`.**
 
-The current repository is an Android application using:
+The current Android application is a clean local-first foundation. The next development milestone is **V3.0 Dashboard / UX**.
+
+### Current branches
+
+- `main` — stable milestone branch
+- `dev` — active development branch
+- `feature/*` — optional branches for larger isolated changes
+
+The current V2 milestone is developed on `dev` and should be promoted to `main` only after the milestone has been validated.
+
+---
+
+# V2 — Local-First Foundation
+
+V2 establishes the core Tracker domain and data-safety foundation before adding scheduling, cloud sync, or AI automation.
+
+## Implemented
+
+### Core domain
+
+- Days
+- Tasks
+- Habits
+- Habit logs
+- Activities
+- Goals
+- Projects
+- Journal entries
+- Study subjects
+- Study topics
+- Study sessions
+- Assessments
+- Knowledge notes
+- Weekly reviews
+
+### Android foundation
 
 - Kotlin
 - Jetpack Compose
 - Material 3
-- Android Gradle Plugin
-- Kotlin Symbol Processing (KSP)
-- Room
-- Kotlin Coroutines
-- Retrofit / OkHttp / Moshi
-- Firebase AI integration
-- Firebase App Check
-- Robolectric / Roborazzi testing infrastructure
-
-The current application is still strongly centered around study preparation.
-
-### V1 functionality present in the current source
-
-The existing code contains a study dashboard with concepts including:
-
-- 3-phase study engine
-- 5-hour daily study blocks
-- Study block timers
-- Study progress tracking
-- Active recall notes
-- Oswaal practice logging
-- Mock-test logging
-- AI tutor / memory context
-- Text analytics
-- Study context generation
-- Filtering/search for notes and practice data
-- Local Room persistence
-
-### Important V1 limitations
-
-The current implementation has several prototype-level characteristics that V2 will address:
-
-- Package/application identifiers are still generic/GATE-specific.
-- The application structure is heavily study-specific.
-- The main dashboard contains a large amount of domain logic and UI.
-- Data/domain boundaries need to be separated.
-- Database and migration strategy needs to be formalized.
-- Core personal-productivity concepts such as generic tasks, habits, activities, goals and projects are not yet first-class concepts.
-- Cloud synchronization is not yet part of the core architecture.
-- The current project configuration contains optional Firebase infrastructure that should be reassessed rather than carried forward automatically.
-- Release signing configuration must remain local/secret and must never be committed with credentials.
-
-V1 should therefore be treated as a **working reference and source of useful ideas**, not as the final V2 architecture.
-
----
-
-# V2 — Personal Tracker
-
-## Vision
-
-Tracker V2 is initially being built for **one personal user: Muneer**.
-
-It is not being designed as a public multi-account service yet.
-
-The goal is a reliable personal system that brings together:
-
-- Daily planning
-- Tasks
-- Habits
-- Activity logging
-- Study
-- Goals
-- Projects
-- Notes
-- Journal
-- Analytics
-- Optional AI assistance
-
-The architecture should still avoid decisions that would make a future multi-user V3 unnecessarily difficult.
-
-## Core principle
-
-> **Offline first. Local data first. Sync second. AI optional.**
-
-The core application must remain useful without an internet connection.
-
----
-
-## V2 Architecture Direction
-
-### Android
-
-- Kotlin
-- Jetpack Compose
-- Room / SQLite
-- Kotlin Coroutines + Flow
 - ViewModel
-- WorkManager for background sync
-- Adaptive layouts for phones, tablets and foldables
-- Modern Android APIs without device-specific hacks
+- Kotlin Coroutines / Flow
+- Room / SQLite
+- KSP
+- Robolectric tests
+- GitHub Actions CI
+- Debug APK artifact generation
 
-### Web
+### Data safety
 
-Planned:
+Tracker has a versioned JSON backup/export format containing the application's domain collections and metadata.
 
-- Next.js
-- React
-- TypeScript
+Restore behavior is intentionally conservative:
 
-The web application will be developed after the core Android/domain model is stable.
+- Backup JSON is validated before import.
+- Entity IDs and references are validated.
+- Malformed scalar values are rejected.
+- Restore replaces the current local dataset only after user confirmation.
+- Restore runs inside a Room transaction.
+- Failed restores roll back instead of leaving a partially restored database.
 
-### Cloud / Sync
+Portable JSON was chosen instead of exposing the raw SQLite database as the application's backup format.
 
-Planned:
+### Testing
 
-- PostgreSQL
-- Supabase as the initial managed backend candidate
-- Secure authentication/sync infrastructure when cloud synchronization is introduced
-- Row-level ownership/security designed so V3 can add multi-user accounts without rebuilding the data model
+The current test suite covers:
 
-### Deployment
+- Model validation
+- Database foundation
+- Backup format/version validation
+- Broken-reference rejection
+- Malformed scalar rejection
+- Backup/restore round trips
+- Restore transaction rollback
 
-Planned:
+### CI
 
-- Web application: Vercel
-- Database/backend services: Supabase
-- Android: APK/AAB build and normal Android distribution
+GitHub Actions builds the Android debug APK.
 
-Deployment is intentionally postponed until the application and data model are stable.
+The CI workflow also uploads the generated APK as a downloadable workflow artifact for testing.
 
 ---
 
-# V2 Domain Model
+# Architecture
 
-The initial core model is expected to contain:
+The current application is deliberately local-first:
+
+```
+Android UI
+    ↓
+ViewModel
+    ↓
+Room / SQLite
+    ↓
+Local Tracker data
+```
+
+The future synchronization architecture is planned as:
+
+```
+Android
+   ↓
+Room
+   ↓
+Sync Outbox
+   ↓
+WorkManager
+   ↓
+HTTPS
+   ↓
+Supabase / PostgreSQL
+   ↓
+Authentication + Row-Level Security
+```
+
+Cloud synchronization is **not part of the current V2 foundation**.
+
+---
+
+# Product Roadmap
+
+## V3.0 — Dashboard / UX
+
+Build the main Tracker experience around a real dashboard rather than separate basic lists.
+
+Planned dashboard elements:
+
+- Today overview
+- Current date
+- Progress summary
+- Next scheduled item
+- Today's tasks
+- Habits
+- Study progress
+- Quick add
+- Timeline / upcoming items
+- Consistent cards, spacing, typography, and navigation
+- Adaptive layouts for different screen sizes
+
+The goal is to make the existing domain data useful as a coherent daily workflow.
+
+---
+
+## V3.1 — Plans & Milestones
+
+Introduce structured planning:
+
+- Plans
+- Milestones
+- Deadlines
+- Estimated duration
+- Priority
+- Dependencies
+- Available time
+- Fixed commitments
+- Plan progress
+
+Example:
+
+```
+Plan
+ ├── Milestones
+ │    ├── Tasks
+ │    ├── Study topics
+ │    └── Deliverables
+ └── Deadline
+```
+
+---
+
+## V3.2 — Scheduling Engine
+
+Convert plans into feasible schedules.
+
+The scheduling engine should consider:
+
+- Available time
+- Fixed commitments
+- Task duration
+- Priority
+- Deadlines
+- Dependencies
+- Existing scheduled work
+- Study requirements
+- Habit routines
+
+The scheduling engine must be deterministic and testable.
+
+---
+
+## V3.3 — Calendar & Execution
+
+Turn schedules into actionable time blocks.
+
+Planned functionality:
+
+- Calendar / timeline
+- Scheduled start notifications
+- Task reminders
+- Recurring reminders
+- Snooze
+- Skip
+- Reschedule
+- Planned vs actual time
+- Alarm/reminder handling using appropriate modern Android APIs
+
+Exact-alarm behavior will follow Android's current permission and platform requirements rather than assuming unrestricted alarm access.
+
+---
+
+## V3.4 — Analytics & Reviews
+
+Add:
+
+- Daily review
+- Weekly review
+- Completion trends
+- Study-time trends
+- Habit consistency
+- Planned vs actual analysis
+- Goal/project progress
+- Review-driven adjustments
+
+Analytics should be derived from source records wherever practical instead of storing duplicated mutable aggregates.
+
+---
+
+## V3.5 — AI Plan → Schedule
+
+AI should assist with planning, not replace the deterministic application logic.
+
+Target flow:
+
+```
+Natural-language plan
+        ↓
+AI
+        ↓
+Structured plan JSON
+        ↓
+Validation
+        ↓
+Deterministic Tracker planner
+        ↓
+Schedule
+```
+
+AI must not directly modify the database.
+
+The application should validate AI-generated structured data before creating or changing Tracker records.
+
+AI should remain optional; core Tracker functionality must work without an AI provider.
+
+---
+
+# Future V4 — Cloud, Sync & Web
+
+After the local Android product is stable, the project can evolve toward:
+
+- Account/authentication
+- Multi-device sync
+- PostgreSQL/Supabase backend
+- Row-level security
+- Conflict resolution
+- Web application
+- Device/session management
+- Optional sharing and permissions
+
+The target synchronization model is:
+
+```
+Operation ID
+    +
+Idempotency
+    +
+Unique constraints
+    +
+Transactions
+    +
+Versioning
+    +
+Conflict handling
+```
+
+Different records may require different conflict semantics.
+
+Examples:
+
+| Data | Planned approach |
+|---|---|
+| Tasks | Versioned updates / safe merge |
+| Task completion | Idempotent state update |
+| Habit logs | Unique `(habit_id, date)` |
+| Activities | Append-only where appropriate |
+| Study sessions | Append-only |
+| Journal / notes | Conflict detection / preserved versions |
+| Goals / settings | Versioned updates |
+| Analytics | Derived from source records |
+
+Network arrival time must not be treated as the definition of which user edit is newer.
+
+---
+
+# Data Model
+
+Current core entities:
 
 ```
 Day
@@ -157,11 +341,6 @@ Task
 Habit
 HabitLog
 Activity
-```
-
-Then expand into:
-
-```
 Goal
 Project
 JournalEntry
@@ -173,222 +352,36 @@ KnowledgeNote
 WeeklyReview
 ```
 
-Analytics should primarily be derived from source records instead of duplicating mutable aggregate state wherever practical.
+The model is intentionally designed so study functionality is a module within Tracker rather than the entire application.
 
 ---
 
-# V2 Development Stages
+# Security & Privacy
 
-## V2.0 — Foundation
+Tracker is intended to contain personal productivity, study, journal, and activity data.
 
-Build the clean core:
+Repository rules:
 
-- Project/package cleanup
-- Application architecture
-- Room database
-- Database migrations
-- Day model
-- Task model
-- Habit model
-- Habit log
-- Activity model
-- Today screen
-- Task completion
-- Habit completion
-- Activity logging
-- Core tests
-- Error handling
-- Backup/export foundation
+- Never commit API keys.
+- Never commit passwords or authentication tokens.
+- Never commit service-role credentials.
+- Never commit personal database contents.
+- Never commit private signing credentials.
+- Do not log sensitive personal data unnecessarily.
+- Validate externally supplied data.
+- Use HTTPS/TLS for future network communication.
+- Use secure token/credential storage when accounts are introduced.
+- Minimize AI context sent to external providers.
+- Keep database migrations explicit and safe.
+- Maintain backup/export capability.
 
-### Target loop
-
-```
-Open Tracker
-    ↓
-See Today
-    ↓
-Add/complete task
-    ↓
-Complete habit
-    ↓
-Log activity/study
-    ↓
-See progress
-```
+A fresh clone should produce a clean Tracker installation without containing personal user data.
 
 ---
 
-## V2.1 — Study Module
+# Development Workflow
 
-Turn the existing study functionality into a proper module rather than the entire application.
-
-Planned concepts:
-
-- Study subjects
-- Study topics
-- Study sessions
-- Study plans
-- Practice sessions
-- Assessments/mock tests
-- Knowledge/active-recall notes
-- Study timers
-- GATE/DA-specific planning
-- Study analytics
-
-Existing V1 study functionality will be selectively reused/refactored.
-
----
-
-## V2.2 — Personal Management
-
-Add:
-
-- Goals
-- Projects
-- Journal
-- Weekly review
-- Better analytics
-- Personal dashboards
-- Recurring tasks
-- Reminders
-- Achievement/progress system
-
----
-
-## V2.3 — AI Layer
-
-AI is an enhancement, not a dependency.
-
-Planned capabilities:
-
-- General Tracker AI assistant
-- Daily summaries
-- Weekly reviews
-- Study-context generation
-- Natural-language task/plan assistance
-- Pattern detection
-- Personalized insights
-
-AI providers must be accessed through a provider abstraction rather than coupling the application directly to one vendor.
-
-**Secrets must never be embedded in the Android APK or browser client.**
-
----
-
-## V2.4 — Multi-device Sync
-
-Introduce:
-
-```
-Android
-  ↓
-Room
-  ↓
-Sync Outbox
-  ↓
-WorkManager
-  ↓
-Secure API / Supabase
-  ↓
-PostgreSQL
-```
-
-The synchronization layer will use:
-
-- Unique operation IDs
-- Idempotent operations
-- Database unique constraints
-- Transactions / ACID guarantees
-- Versioned records
-- Conflict detection
-- Tombstones where required
-- Append-only records for suitable event data
-- Safe retries after lost network responses
-
-A repeated network request must never accidentally perform a logical action twice.
-
----
-
-# Database & Sync Rules
-
-## ACID is necessary but not sufficient
-
-Transactions protect database consistency, but network retries can still duplicate an operation.
-
-Therefore V2 sync will use both:
-
-```
-ACID
-+
-Idempotency
-+
-Unique constraints
-+
-Versioning
-+
-Conflict resolution
-```
-
-Example:
-
-```
-operation_id = UUID
-```
-
-If the same operation is transmitted again because the first response was lost, the server must recognize it and avoid applying the logical operation twice.
-
-## Conflict strategy
-
-Different data types may require different strategies:
-
-| Data | Strategy |
-|---|---|
-| Tasks | Versioned updates / safe merge |
-| Task completion | Idempotent state update |
-| Habit logs | Unique `(habit_id, date)` |
-| Activities | Append-only where appropriate |
-| Study sessions | Append-only |
-| Journal/notes | Conflict detection / preserve versions |
-| Goals/settings | Versioned updates |
-| Analytics | Derived from source records |
-
-Do not use network arrival time as the definition of which edit is newer.
-
----
-
-# Security
-
-V2 security requirements:
-
-- Never commit API keys or service-role secrets.
-- Use environment variables/secrets for external services.
-- HTTPS/TLS for network communication.
-- Validate all externally supplied data.
-- Use secure local credential/token storage.
-- Keep AI context minimal.
-- Avoid logging sensitive personal data.
-- Use database constraints and transactions.
-- Use proper Room migrations.
-- Maintain backups/export capability.
-- Run dependency/security checks before releases.
-
-The future V3 multi-user system will additionally require:
-
-- Authentication
-- Per-user ownership
-- Row-level authorization
-- Account isolation
-- Session/device management
-- Password/account recovery
-- Multi-user security testing
-
-These are intentionally not part of the current personal V2 scope.
-
----
-
-# Branching Strategy
-
-## Branches
+## Branching
 
 ```
 main
@@ -400,185 +393,114 @@ main
        └── refactor/*
 ```
 
-### `main`
+Use `dev` for active development.
 
-Stable code only.
-
-**Do not develop directly on `main`.**
-
-### `dev`
-
-Primary V2 development branch.
-
-All major V2 work should land here first.
-
-### Feature branches
-
-For larger changes:
+For larger isolated work:
 
 ```
 dev
  ↓
-feature/task-system
+feature/...
  ↓
-PR
+Pull Request
  ↓
 dev
 ```
 
-Examples:
+Promote `dev` to `main` at stable milestones.
 
-- `feature/core-database`
-- `feature/today-screen`
-- `feature/habit-system`
-- `feature/study-module`
-- `feature/sync-engine`
-- `feature/web-app`
+## Before merging significant changes
 
----
+Run:
 
-# Git Rules
-
-1. Never commit secrets.
-2. Never commit personal database contents.
-3. Never use destructive database migrations for production/personal data.
-4. Do not push unfinished V2 development directly to `main`.
-5. Keep commits focused and understandable.
-6. Build and test before merging significant changes.
-7. Update documentation when architecture changes.
-8. Prefer pull requests from feature branches into `dev`.
-9. Promote `dev` to `main` only after a stable milestone is tested.
-
----
-
-# Repository Safety
-
-The repository should contain:
-
-- Source code
-- Schemas/migrations
-- Configuration templates
-- Documentation
-- Tests
-- Build configuration
-
-It should **not** contain:
-
-- Personal tasks
-- Journal entries
-- Personal study history
-- Database files containing private data
-- API keys
-- Passwords
-- Authentication tokens
-- Production service-role credentials
-- Private signing credentials
-
-A fresh clone should be able to become a clean Tracker installation after following the setup instructions, without receiving Muneer's personal data.
-
----
-
-# Future V3 — Multi-user Tracker
-
-Multi-user support is deliberately postponed.
-
-When V3 begins, the architecture can evolve toward:
-
-```
-User
-  ↓
-Account
-  ↓
-Owned data
-  ↓
-Devices
-  ↓
-Cloud synchronization
+```text
+assembleDebug
+testDebugUnitTest
+lintDebug
 ```
 
-Expected V3 additions:
-
-- Sign up / sign in
-- Authentication
-- User-owned data
-- Database row-level security
-- Account settings
-- Device/session management
-- Password recovery
-- Optional social login
-- Sharing/permissions if ever required
-- Public deployment
-
-V3 should be an extension of the stable V2 domain model, not a complete rewrite.
+GitHub Actions provides an additional build verification layer.
 
 ---
 
-# Development Philosophy
+# Toolchain
 
-Tracker is being rebuilt because the V1 prototype grew around a specific study workflow.
+The current project uses:
 
-V2 will instead establish a clean general-purpose core first and place study functionality inside that core.
+- Android Gradle Plugin 9.1.1
+- Gradle 9.3.1
+- Kotlin 2.2.10
+- KSP 2.3.6
+- Room 2.7.0
+- Android SDK Platform 36
+- JDK 17 in CI
 
-The order is:
+Toolchain upgrades should be deliberate and compatibility-tested rather than performed simply to use the newest available version.
+
+---
+
+# Project Structure
+
+The main application package is:
 
 ```
-Foundation
-    ↓
-Core personal tracking
-    ↓
-Study module
-    ↓
-Personal management
-    ↓
-AI
-    ↓
-Cloud sync
-    ↓
-Web
-    ↓
-Multi-user V3
+com.muneer.tracker
 ```
 
-The priority is **correctness, reliability, maintainability and real daily usefulness** over adding large numbers of features quickly.
+Important areas include:
+
+```
+app/
+├── src/main/
+│   ├── java/com/muneer/tracker/
+│   │   ├── MainActivity.kt
+│   │   ├── TrackerViewModel.kt
+│   │   ├── data/
+│   │   │   ├── TrackerDatabase.kt
+│   │   │   └── TrackerBackup.kt
+│   │   └── ui/
+│   │       └── TrackerApp.kt
+│   └── res/
+└── src/test/
+    └── java/com/muneer/tracker/
+        ├── TrackerModelTest.kt
+        ├── TrackerDatabaseFoundationTest.kt
+        └── TrackerBackupTest.kt
+```
+
+The structure will expand as V3 introduces dedicated dashboard, planner, scheduling, calendar, analytics, and AI layers.
 
 ---
 
-## Current Implementation Status
+# Design Principles
 
-The `dev` branch now contains the first clean V2 personal foundation:
+1. **Offline first.**
+2. **Local data first.**
+3. **AI optional.**
+4. **Deterministic application logic.**
+5. **Data safety over convenience.**
+6. **Test behavior, not just compilation.**
+7. **Keep domain logic separate from UI.**
+8. **Avoid unnecessary toolchain churn.**
+9. **Never commit secrets or personal data.**
+10. **Build incrementally from a stable foundation.**
 
-- V2 Android application identity (`com.muneer.tracker`)
-- Separate V2 Room database (`tracker_v2.db`)
-- Day / Task / Habit / HabitLog / Activity models
-- Today screen
-- Study subjects / topics / sessions
-- Assessment logging
-- Knowledge notes
-- Goals and projects
-- Journal entries
-- GitHub Actions Android build workflow
-- `main` remains untouched by V2 development
+The priority is:
 
-## V2.2 Scope Completed
-
-V2.2 is intentionally a personal, local-first Android application. It does not require an account, cloud backend, AI provider, or network connection for core tracking.
-
-Implemented domain capabilities include tasks, habits, activities, study subjects/topics/sessions, assessments, knowledge notes, goals, projects, journal entries, weekly reviews, derived progress counters, local deletion/edit controls, and a dedicated Room database.
-
-## Remaining V2.2 Hardening
-
-1. Add focused unit/database tests for the new domain.
-2. Add proper task/goal/project editing and deletion flows.
-3. Add recurring tasks and reminders.
-4. Add weekly review and analytics derived from source records.
-5. Add backup/export and restore.
-6. Add adaptive layouts and accessibility verification on the Oppo F17 Pro and larger screens.
-7. Complete the sync/outbox design before introducing cloud synchronization.
-8. Build the web client only after the Android/domain model is stable.
+```
+Correctness
+    ↓
+Reliability
+    ↓
+Maintainability
+    ↓
+Usability
+    ↓
+Automation
+```
 
 ---
 
-## License
+# License
 
-No public open-source license has been selected yet. The repository is currently private.
-
+No public open-source license has been selected. The repository is currently private.
