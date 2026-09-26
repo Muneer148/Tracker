@@ -5,14 +5,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 private val TrackerLightColors = lightColorScheme(
     primary = AppPrimary,
-    onPrimary = ColorWhite,
+    onPrimary = Color.White,
     primaryContainer = AppPrimarySoft,
     onPrimaryContainer = AppInk,
     secondary = AppMint,
-    onSecondary = ColorWhite,
+    onSecondary = Color.White,
     secondaryContainer = AppMintSoft,
     onSecondaryContainer = AppInk,
     tertiary = AppAmber,
@@ -28,7 +29,7 @@ private val TrackerLightColors = lightColorScheme(
     outline = AppBorder,
     outlineVariant = AppBorder,
     error = AppRose,
-    onError = ColorWhite,
+    onError = Color.White,
     errorContainer = AppRoseSoft,
     onErrorContainer = AppInk
 )
@@ -56,8 +57,6 @@ private val TrackerDarkColors = darkColorScheme(
     onError = DeepBlue
 )
 
-private val ColorWhite = Color(0xFFFFFFFF)
-
 @Composable
 fun GatePrepTheme(content: @Composable () -> Unit) {
     val colors = if (isSystemInDarkTheme()) TrackerDarkColors else TrackerLightColors
@@ -74,6 +73,5 @@ fun MyApplicationTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    // Tracker intentionally owns its palette so OEM dynamic colors do not change the visual language.
     GatePrepTheme(content = content)
 }
