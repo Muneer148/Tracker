@@ -2,9 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches: [dev, dev-v3, main]
+    branches: [dev, dev-v3, planner-timer-v3, main]
   pull_request:
-    branches: [dev, dev-v3, main]
+    branches: [dev, dev-v3, planner-timer-v3, main]
 
 jobs:
   build:
