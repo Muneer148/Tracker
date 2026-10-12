@@ -1,5 +1,10 @@
 name: Android CI
 
+# Keep only the newest run for a given pull request or branch.
+concurrency:
+  group: android-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [dev, dev-v3, planner-timer-v3, main]
