@@ -146,8 +146,7 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
     val tasks by vm.tasks.collectAsStateWithLifecycle()
     val habits by vm.habits.collectAsStateWithLifecycle()
     val habitLogs by vm.habitLogs.collectAsStateWithLifecycle()
-    val completedTasks by vm.completedTasks.collectAsStateWithLifecycle()
-    val studyMinutes by vm.totalStudyMinutes.collectAsStateWithLifecycle()
+    val studyMinutes by vm.todayStudyMinutes.collectAsStateWithLifecycle()
 
     val totalTasks = tasks.size
     val completedToday = tasks.count { it.completed }
@@ -163,7 +162,7 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
         item { ProgressCard("Today's momentum", completion, "$completedToday of $totalTasks tasks complete · $studyMinutes min studied") }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricCard("Completed", completedTasks.toString(), Modifier.weight(1f))
+                MetricCard("Completed", completedToday.toString(), Modifier.weight(1f))
                 MetricCard("Study", "${studyMinutes}m", Modifier.weight(1f))
             }
         }
