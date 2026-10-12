@@ -8,7 +8,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.RobolectricTestRunner
+import org.junit.runner.RunWith
 
+@RunWith(RobolectricTestRunner::class)
 class TrackerDatabaseFoundationTest {
     private lateinit var database: TrackerDatabase
 

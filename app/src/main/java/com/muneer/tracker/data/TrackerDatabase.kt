@@ -89,6 +89,7 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Query("SELECT * FROM habits WHERE active=1 ORDER BY name") fun activeHabits():Flow<List<HabitEntity>>
  @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insertHabit(habit:HabitEntity)
  @Query("SELECT * FROM habit_logs WHERE date=:date") fun habitLogsForDate(date:String):Flow<List<HabitLogEntity>>
+ @Query("SELECT * FROM habit_logs WHERE habitId=:habitId AND date=:date LIMIT 1") suspend fun habitLogForDateAndHabit(habitId:String,date:String):HabitLogEntity?
  @Insert(onConflict=OnConflictStrategy.REPLACE) suspend fun upsertHabitLog(log:HabitLogEntity)
  @Insert suspend fun insertActivity(activity:ActivityEntity)
  @Query("SELECT * FROM activities WHERE date=:date ORDER BY createdAt DESC") fun activitiesForDate(date:String):Flow<List<ActivityEntity>>
@@ -110,10 +111,11 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Query("SELECT * FROM study_sessions ORDER BY date DESC,createdAt DESC") fun studySessions():Flow<List<StudySessionEntity>>
  @Insert suspend fun insertAssessment(assessment:AssessmentEntity)
  @Query("SELECT * FROM assessments ORDER BY date DESC,createdAt DESC") fun assessments():Flow<List<AssessmentEntity>>
- @Insert suspend fun insertWeeklyReview(review:WeeklyReviewEntity)
+ @Insert(onConflict=OnConflictStrategy.REPLACE) suspend fun insertWeeklyReview(review:WeeklyReviewEntity)
  @Query("SELECT * FROM weekly_reviews ORDER BY weekStart DESC") fun weeklyReviews():Flow<List<WeeklyReviewEntity>>
  @Query("SELECT COUNT(*) FROM tasks WHERE completed=1") fun completedTaskCount():Flow<Int>
  @Query("SELECT COALESCE(SUM(durationMinutes),0) FROM study_sessions") fun totalStudyMinutes():Flow<Int>
+ @Query("SELECT COALESCE(SUM(durationMinutes),0) FROM study_sessions WHERE date=:date") fun studyMinutesForDate(date:String):Flow<Int>
  @Query("SELECT COUNT(*) FROM journal_entries") fun journalCount():Flow<Int>
  @Insert suspend fun insertKnowledgeNote(note:KnowledgeNoteEntity)
  @Query("SELECT * FROM knowledge_notes ORDER BY updatedAt DESC") fun knowledgeNotes():Flow<List<KnowledgeNoteEntity>>

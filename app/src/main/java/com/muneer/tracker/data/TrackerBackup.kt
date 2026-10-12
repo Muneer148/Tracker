@@ -231,7 +231,7 @@ object TrackerBackup {
     suspend fun restore(db: TrackerDatabase, data: RestoreData) {
         db.withTransaction {
             val d=db.trackerDao()
-            d.clearHabitLogs(); d.clearTasks(); d.clearStudySessions(); d.clearAssessments(); d.clearKnowledgeNotes(); d.clearStudyTopics(); d.clearJournalEntries(); d.clearActivities(); d.clearProjects(); d.clearGoals(); d.clearWeeklyReviews(); d.clearHabits(); d.clearDays()
+            d.clearHabitLogs(); d.clearTasks(); d.clearStudySessions(); d.clearAssessments(); d.clearKnowledgeNotes(); d.clearStudyTopics(); d.clearStudySubjects(); d.clearJournalEntries(); d.clearActivities(); d.clearProjects(); d.clearGoals(); d.clearWeeklyReviews(); d.clearHabits(); d.clearDays()
             d.insertDays(data.days); d.insertGoals(data.goals); d.insertProjects(data.projects); d.insertHabits(data.habits); d.insertTasks(data.tasks); d.insertHabitLogs(data.habitLogs); d.insertActivities(data.activities); d.insertJournalEntries(data.journalEntries); d.insertStudySubjects(data.studySubjects); d.insertStudyTopics(data.studyTopics); d.insertStudySessions(data.studySessions); d.insertAssessments(data.assessments); d.insertKnowledgeNotes(data.knowledgeNotes); d.insertWeeklyReviews(data.weeklyReviews)
         }
     }

@@ -433,9 +433,15 @@ The current project uses:
 - KSP 2.3.6
 - Room 2.7.0
 - Android SDK Platform 36
-- JDK 17 in CI
+- JDK 21 in CI; app Java source/target compatibility remains Java 17
 
 Toolchain upgrades should be deliberate and compatibility-tested rather than performed simply to use the newest available version.
+
+## Primary target device and validation
+
+The primary real-device target is **OPPO F17 Pro running ColorOS 12.1 (Android 12 / API 31)**. The configured compile/target SDK is a build setting; it does not mean the target phone runs that Android version.
+
+A successful CI build, unit-test run, and lint run do not substitute for physical-device validation. Before calling a release device-verified, test installation and launch on the OPPO, offline task/habit/study recording, persistence after relaunch, the daily dashboard, and JSON backup export/import (including a failed restore leaving existing data intact). Validate screen layout, keyboard behavior, and app resume/day changes on the phone as well.
 
 ---
 
