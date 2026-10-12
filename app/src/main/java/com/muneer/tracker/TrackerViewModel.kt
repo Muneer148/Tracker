@@ -83,6 +83,16 @@ class TrackerViewModel(app: Application) : AndroidViewModel(app) {
     fun addTopic(subjectId: String, v: String) = viewModelScope.launch { if (v.isNotBlank()) dao.insertTopic(StudyTopicEntity(subjectId = subjectId, name = v.trim())) }
     fun addSession(v: String, m: Int) = viewModelScope.launch { if (v.isNotBlank() && m > 0) dao.insertStudySession(StudySessionEntity(date = today, subjectId = null, topicId = null, title = v.trim(), durationMinutes = m)) }
     fun addAssessment(v: String, s: Double, t: Double) = viewModelScope.launch { if (v.isNotBlank() && t > 0) dao.insertAssessment(AssessmentEntity(date = today, subjectId = null, title = v.trim(), score = s, total = t)) }
-    fun addWeeklyReview(week: String, wins: String, blockers: String, next: String) = viewModelScope.launch { dao.insertWeeklyReview(WeeklyReviewEntity(weekStart = week, wins = wins, blockers = blockers, nextFocus = next)) }
+    fun addWeeklyReview(week: String, wins: String, blockers: String, next: String) = viewModelScope.launch {
+        val start = TrackerDateUtils.weekStart(week)
+        dao.insertWeeklyReview(
+            WeeklyReviewEntity(
+                weekStart = start,
+                wins = wins.trim(),
+                blockers = blockers.trim(),
+                nextFocus = next.trim()
+            )
+        )
+    }
     fun addNote(t: String, c: String) = viewModelScope.launch { if (t.isNotBlank() && c.isNotBlank()) dao.insertKnowledgeNote(KnowledgeNoteEntity(topicId = null, title = t.trim(), content = c.trim())) }
 }
