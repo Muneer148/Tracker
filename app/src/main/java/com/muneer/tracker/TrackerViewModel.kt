@@ -28,6 +28,7 @@ class TrackerViewModel(app: Application) : AndroidViewModel(app) {
     val weeklyReviews = dao.weeklyReviews().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val completedTasks = dao.completedTaskCount().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val totalStudyMinutes = dao.totalStudyMinutes().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val todayStudyMinutes = dao.studyMinutesForDate(today).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val journalCount = dao.journalCount().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val notes = dao.knowledgeNotes().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
