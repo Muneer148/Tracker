@@ -213,6 +213,8 @@ private fun QuickAddField(label: String, value: String, onValueChange: (String) 
 private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
     val today by vm.todayDate.collectAsStateWithLifecycle()
     var task by rememberSaveable { mutableStateOf("") }
+    var taskPriority by rememberSaveable { mutableIntStateOf(2) }
+    var taskFilter by rememberSaveable { mutableIntStateOf(0) }
     var habit by rememberSaveable { mutableStateOf("") }
     val tasks by vm.tasks.collectAsStateWithLifecycle()
     val habits by vm.habits.collectAsStateWithLifecycle()
@@ -222,11 +224,16 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
     val totalTasks = tasks.size
     val completedToday = tasks.count { it.completed }
     val completion = if (totalTasks == 0) 0f else completedToday.toFloat() / totalTasks
+    val visibleTasks = when (taskFilter) {
+        1 -> tasks.filterNot { it.completed }
+        2 -> tasks.filter { it.completed }
+        else -> tasks
+    }
 
     ScreenColumn(modifier) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Good day, Muneer", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Make today count", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                 Text(today, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -237,10 +244,65 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
                 MetricCard("Study", "${studyMinutes}m", Modifier.weight(1f))
             }
         }
-        item { SectionTitle("Priorities", "Keep today's list small and actionable") }
-        item { QuickAddField("Add a task", task, { task = it }, "Add") { vm.addTask(task); task = "" } }
-        items(tasks.take(12), key = { it.id }) { item ->
-            TaskRow(item.title, item.completed, { vm.toggleTask(item) }, { vm.deleteTask(item) })
+        item { SectionTitle("To-do list", "Small, clear next actions — sorted by priority") }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("High" to 1, "Normal" to 2, "Low" to 3).forEach { (label, value) ->
+                    FilterChip(
+                        selected = taskPriority == value,
+                        onClick = { taskPriority = value },
+                        label = { Text(label) }
+                    )
+                }
+            }
+        }
+        item { QuickAddField("Add a task", task, { task = it }, "Add") { vm.addTask(task, taskPriority); task = ""; taskPriority = 2 } }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("All" to 0, "Open" to 1, "Done" to 2).forEach { (label, value) ->
+                    FilterChip(
+                        selected = taskFilter == value,
+                        onClick = { taskFilter = value },
+                        label = {
+                            Text(when (value) {
+                                0 -> "$label (\${tasks.size})"
+                                1 -> "$label (\${tasks.count { !it.completed }})"
+                                else -> "$label (\${tasks.count { it.completed }})"
+                            })
+                        }
+                    )
+                }
+            }
+        }
+        if (visibleTasks.isEmpty()) {
+            item {
+                Text(
+                    text = when {
+                        tasks.isEmpty() -> "Your list is clear. Add a task when something needs doing."
+                        taskFilter == 1 -> "No open tasks. Nice work."
+                        else -> "No completed tasks yet."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                        .padding(16.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            items(visibleTasks, key = { it.id }) { item ->
+                val priorityLabel = when (item.priority) {
+                    1 -> "High priority"
+                    3 -> "Low priority"
+                    else -> "Normal priority"
+                }
+                TaskRow(
+                    title = item.title,
+                    done = item.completed,
+                    onToggle = { vm.toggleTask(item) },
+                    onDelete = { vm.deleteTask(item) },
+                    detail = priorityLabel
+                )
+            }
         }
         item { SectionTitle("Habits", "Small actions, repeated consistently") }
         item { QuickAddField("Add a habit", habit, { habit = it }, "Add") { vm.addHabit(habit); habit = "" } }
@@ -252,13 +314,22 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
 }
 
 @Composable
-private fun TaskRow(title: String, done: Boolean, onToggle: () -> Unit, onDelete: () -> Unit) {
+private fun TaskRow(
+    title: String,
+    done: Boolean,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit,
+    detail: String? = null
+) {
     ElevatedCard(shape = RoundedCornerShape(18.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(shape = CircleShape, color = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(36.dp)) {
                 Box(contentAlignment = Alignment.Center) { Text(if (done) "✓" else "•", color = if (done) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            Text(title, Modifier.weight(1f).padding(horizontal = 12.dp), color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+                detail?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
             TextButton(onClick = onToggle) { Text(if (done) "Undo" else "Done") }
             TextButton(onClick = onDelete) { Text("×") }
         }
