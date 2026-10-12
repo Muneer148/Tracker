@@ -114,6 +114,7 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Query("SELECT * FROM weekly_reviews ORDER BY weekStart DESC") fun weeklyReviews():Flow<List<WeeklyReviewEntity>>
  @Query("SELECT COUNT(*) FROM tasks WHERE completed=1") fun completedTaskCount():Flow<Int>
  @Query("SELECT COALESCE(SUM(durationMinutes),0) FROM study_sessions") fun totalStudyMinutes():Flow<Int>
+ @Query("SELECT COALESCE(SUM(durationMinutes),0) FROM study_sessions WHERE date=:date") fun studyMinutesForDate(date:String):Flow<Int>
  @Query("SELECT COUNT(*) FROM journal_entries") fun journalCount():Flow<Int>
  @Insert suspend fun insertKnowledgeNote(note:KnowledgeNoteEntity)
  @Query("SELECT * FROM knowledge_notes ORDER BY updatedAt DESC") fun knowledgeNotes():Flow<List<KnowledgeNoteEntity>>
