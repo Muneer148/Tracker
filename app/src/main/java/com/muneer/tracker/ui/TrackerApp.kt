@@ -265,9 +265,9 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
                         onClick = { taskFilter = value },
                         label = {
                             Text(when (value) {
-                                0 -> "$label (\${tasks.size})"
-                                1 -> "$label (\${tasks.count { !it.completed }})"
-                                else -> "$label (\${tasks.count { it.completed }})"
+                                0 -> "$label (${tasks.size})"
+                                1 -> "$label (${tasks.count { !it.completed }})"
+                                else -> "$label (${tasks.count { it.completed }})"
                             })
                         }
                     )
