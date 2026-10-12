@@ -161,6 +161,7 @@ class TrackerBackupTest {
 
         database.trackerDao().clearTasks()
         database.trackerDao().insertTask(TaskEntity("replacement", "d1", "Replacement"))
+        database.trackerDao().insertSubject(StudySubjectEntity("stale-subject", "Stale subject"))
         TrackerBackup.restore(database, backup)
 
         val d = database.trackerDao()
@@ -170,6 +171,7 @@ class TrackerBackupTest {
         assertEquals(listOf("h1"), d.allHabitLogs().map { it.habitId })
         assertEquals(listOf("a1"), d.allActivities().map { it.id })
         assertEquals(listOf("g1"), d.allGoals().map { it.id })
+        assertEquals(listOf("s1"), d.allStudySubjects().map { it.id })
         assertEquals(listOf("p1"), d.allProjects().map { it.id })
         assertEquals(listOf("j1"), d.allJournalEntries().map { it.id })
         assertEquals(listOf("s1"), d.allStudySubjects().map { it.id })
