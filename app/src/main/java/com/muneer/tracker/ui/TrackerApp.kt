@@ -141,6 +141,7 @@ private fun QuickAddField(label: String, value: String, onValueChange: (String) 
 
 @Composable
 private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
+    val today by vm.todayDate.collectAsStateWithLifecycle()
     var task by rememberSaveable { mutableStateOf("") }
     var habit by rememberSaveable { mutableStateOf("") }
     val tasks by vm.tasks.collectAsStateWithLifecycle()
@@ -156,7 +157,7 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Good day, Muneer", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = Ink)
-                Text(vm.today, style = MaterialTheme.typography.bodyMedium, color = Muted)
+                Text(today, style = MaterialTheme.typography.bodyMedium, color = Muted)
             }
         }
         item { ProgressCard("Today's momentum", completion, "$completedToday of $totalTasks tasks complete · $studyMinutes min studied") }
@@ -316,6 +317,7 @@ private fun GoalsScreen(vm: TrackerViewModel, modifier: Modifier) {
 
 @Composable
 private fun WeeklyReviewCard(vm: TrackerViewModel) {
+    val today by vm.todayDate.collectAsStateWithLifecycle()
     var wins by rememberSaveable { mutableStateOf("") }
     var blockers by rememberSaveable { mutableStateOf("") }
     var next by rememberSaveable { mutableStateOf("") }
@@ -324,7 +326,7 @@ private fun WeeklyReviewCard(vm: TrackerViewModel) {
             OutlinedTextField(wins, { wins = it }, Modifier.fillMaxWidth(), label = { Text("What went well?") }, shape = RoundedCornerShape(16.dp))
             OutlinedTextField(blockers, { blockers = it }, Modifier.fillMaxWidth(), label = { Text("What blocked me?") }, shape = RoundedCornerShape(16.dp))
             OutlinedTextField(next, { next = it }, Modifier.fillMaxWidth(), label = { Text("Next focus") }, shape = RoundedCornerShape(16.dp))
-            Button(onClick = { vm.addWeeklyReview(vm.today, wins, blockers, next); wins = ""; blockers = ""; next = "" }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) { Text("Save review") }
+            Button(onClick = { vm.addWeeklyReview(today, wins, blockers, next); wins = ""; blockers = ""; next = "" }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) { Text("Save review") }
         }
     }
 }
