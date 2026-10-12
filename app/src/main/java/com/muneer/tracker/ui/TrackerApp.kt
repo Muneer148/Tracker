@@ -400,7 +400,7 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
                 }
             }
         }
-        items(notes, key = { it.id }) { Text("${it.title}: ${it.content.take(140)}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
+        items(notes, key = { it.id }) { Text("${it.title}: ${it.content}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
     }
 }
 
@@ -485,6 +485,11 @@ private fun JournalScreen(vm: TrackerViewModel, modifier: Modifier) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Title") }, shape = RoundedCornerShape(16.dp))
                     OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(), minLines = 7, label = { Text("What happened today?") }, shape = RoundedCornerShape(16.dp))
+                    Text(
+                        "A title and entry text are both required.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Button(
                         onClick = {
                             vm.addJournal(title.trim(), body.trim())
