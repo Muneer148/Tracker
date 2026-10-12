@@ -25,6 +25,7 @@ import com.muneer.tracker.data.*
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private val Ink = Color(0xFF111318)
 private val Muted = Color(0xFF6B7280)
@@ -361,6 +362,7 @@ private fun JournalScreen(vm: TrackerViewModel, modifier: Modifier) {
 @Composable
 private fun SettingsScreen(vm: TrackerViewModel, modifier: Modifier) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var pendingUri by remember { mutableStateOf<Uri?>(null) }
     var pendingImport by remember { mutableStateOf<String?>(null) }
     var showRestoreConfirm by remember { mutableStateOf(false) }
@@ -416,7 +418,30 @@ private fun SettingsScreen(vm: TrackerViewModel, modifier: Modifier) {
             onDismissRequest = { showRestoreConfirm = false; pendingImport = null },
             title = { Text("Restore backup?") },
             text = { Text("This replaces the current local Tracker data. Export a fresh backup before continuing if you need to preserve it.") },
-            confirmButton = { TextButton(onClick = { pendingImport?.let { json -> busy = true; runCatching { vm.restoreBackupJson(json) }.onSuccess { Toast.makeText(context, "Backup restored", Toast.LENGTH_SHORT).show() }.onFailure { error = it.message ?: "Restore failed" }; busy = false }; pendingImport = null; showRestoreConfirm = false }) { Text("Restore") } },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val json = pendingImport
+                        if (json != null && !busy) {
+                            scope.launch {
+                                busy = true
+                                try {
+                                    vm.restoreBackupJson(json)
+                                    Toast.makeText(context, "Backup restored", Toast.LENGTH_SHORT).show()
+                                    error = null
+                                    pendingImport = null
+                                    showRestoreConfirm = false
+                                } catch (e: Exception) {
+                                    error = e.message ?: "Restore failed"
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        }
+                    },
+                    enabled = !busy
+                ) { Text(if (busy) "Restoring…" else "Restore") }
+            },
             dismissButton = { TextButton(onClick = { pendingImport = null; showRestoreConfirm = false }) { Text("Cancel") } }
         )
     }
