@@ -57,7 +57,7 @@ class TrackerViewModel(app: Application) : AndroidViewModel(app) {
         weeklyReviews = dao.allWeeklyReviews()
     )
 
-    fun restoreBackupJson(json: String) = viewModelScope.launch {
+    suspend fun restoreBackupJson(json: String) {
         val data = TrackerBackup.parseAndValidate(json)
         TrackerBackup.restore(TrackerDatabase.get(getApplication()), data)
     }
