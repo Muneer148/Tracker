@@ -111,7 +111,13 @@ class TrackerViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteJournal(v: JournalEntryEntity) = viewModelScope.launch { dao.deleteJournal(v) }
     fun updateGoal(v: GoalEntity, p: Int) = viewModelScope.launch { dao.updateGoal(v.copy(progress = p.coerceIn(0, 100), updatedAt = System.currentTimeMillis())) }
     fun addProject(v: String) = viewModelScope.launch { if (v.isNotBlank()) dao.insertProject(ProjectEntity(name = v.trim())) }
-    fun addJournal(t: String, c: String) = viewModelScope.launch { if (t.isNotBlank() || c.isNotBlank()) dao.insertJournal(JournalEntryEntity(date = today, title = t.trim(), content = c.trim())) }
+    fun addJournal(t: String, c: String) = viewModelScope.launch {
+        val title = t.trim()
+        val content = c.trim()
+        if (isValidJournalEntry(title, content)) {
+            dao.insertJournal(JournalEntryEntity(date = today, title = title, content = content))
+        }
+    }
     fun addSubject(v: String) = viewModelScope.launch { if (v.isNotBlank()) dao.insertSubject(StudySubjectEntity(name = v.trim())) }
     fun addTopic(subjectId: String, v: String) = viewModelScope.launch { if (v.isNotBlank()) dao.insertTopic(StudyTopicEntity(subjectId = subjectId, name = v.trim())) }
     fun addSession(v: String, m: Int) = viewModelScope.launch { if (v.isNotBlank() && m > 0) dao.insertStudySession(StudySessionEntity(date = today, subjectId = null, topicId = null, title = v.trim(), durationMinutes = m)) }
