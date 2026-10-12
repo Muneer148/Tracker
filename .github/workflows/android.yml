@@ -22,12 +22,25 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
       - name: Build debug APK
+        id: assemble
         run: ./gradlew :app:assembleDebug --stacktrace
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
       - name: Run Android lint
+        if: ${{ always() && steps.assemble.outcome == 'success' }}
         run: ./gradlew :app:lintDebug --stacktrace
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tracker-test-reports
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/lint-results-debug.html
+          if-no-files-found: warn
       - name: Upload debug APK
+        if: ${{ always() && steps.assemble.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: tracker-debug-apk
