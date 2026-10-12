@@ -306,7 +306,7 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
         }
         item { SectionTitle("Habits", "Small actions, repeated consistently") }
         item { QuickAddField("Add a habit", habit, { habit = it }, "Add") { vm.addHabit(habit); habit = "" } }
-        items(habits.take(10), key = { it.id }) { item ->
+        items(habits, key = { it.id }) { item ->
             val done = habitLogs.any { it.habitId == item.id && it.completedCount > 0 }
             TaskRow(item.name, done, { vm.toggleHabit(item) }, { vm.deleteHabit(item) })
         }
@@ -364,7 +364,7 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
         }
         item { SectionTitle("Subjects", "Your active learning map") }
         item { QuickAddField("New subject", subject, { subject = it }, "Add") { vm.addSubject(subject); subject = "" } }
-        items(subjects.take(12), key = { it.id }) { Text("• ${it.name}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
+        items(subjects, key = { it.id }) { Text("• ${it.name}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
         item { SectionTitle("Focus session") }
         item {
             ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -375,7 +375,7 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
                 }
             }
         }
-        items(sessions.take(10), key = { it.id }) { Text("${it.title}  ·  ${it.durationMinutes} min", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
+        items(sessions, key = { it.id }) { Text("${it.title}  ·  ${it.durationMinutes} min", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
         item { SectionTitle("Assessments") }
         item {
             ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -389,7 +389,7 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
                 }
             }
         }
-        items(assessments.take(8), key = { it.id }) { Text("${it.title}  ·  ${it.score}/${it.total}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
+        items(assessments, key = { it.id }) { Text("${it.title}  ·  ${it.score}/${it.total}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
         item { SectionTitle("Knowledge notes", "Capture mistakes and insights while they are fresh") }
         item {
             ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -400,7 +400,7 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
                 }
             }
         }
-        items(notes.take(8), key = { it.id }) { Text("${it.title}: ${it.content.take(140)}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
+        items(notes, key = { it.id }) { Text("${it.title}: ${it.content.take(140)}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
     }
 }
 
