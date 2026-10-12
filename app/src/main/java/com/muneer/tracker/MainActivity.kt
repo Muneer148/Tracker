@@ -11,4 +11,5 @@ import com.muneer.tracker.ui.TrackerApp
 class MainActivity:ComponentActivity(){
  private val vm:TrackerViewModel by viewModels()
  override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MyApplicationTheme{Surface(Modifier.fillMaxSize()){TrackerApp(vm)}}}}
+ override fun onResume(){super.onResume();vm.refreshToday()}
 }
