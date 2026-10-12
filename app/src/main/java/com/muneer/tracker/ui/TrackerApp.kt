@@ -1,5 +1,6 @@
 package com.muneer.tracker.ui
 
+import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.ui.theme.MyApplicationTheme
 import com.muneer.tracker.TrackerViewModel
 import com.muneer.tracker.data.*
 import java.text.SimpleDateFormat
@@ -27,20 +29,41 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
 
-private val Ink = Color(0xFF111318)
-private val Muted = Color(0xFF6B7280)
-private val Accent = Color(0xFF5B5BD6)
-private val AccentSoft = Color(0xFFE9E8FF)
-private val Green = Color(0xFF2E7D61)
-private val SurfaceSoft = Color(0xFFF5F5F7)
+@Composable
+fun TrackerRoot(vm: TrackerViewModel) {
+    val context = LocalContext.current
+    val preferences = remember(context) {
+        context.getSharedPreferences("tracker_preferences", Context.MODE_PRIVATE)
+    }
+    var darkTheme by remember {
+        mutableStateOf(preferences.getBoolean("dark_theme", true))
+    }
+
+    MyApplicationTheme(darkTheme = darkTheme) {
+        TrackerApp(
+            vm = vm,
+            isDarkTheme = darkTheme,
+            onThemeChange = { enabled ->
+                darkTheme = enabled
+                preferences.edit().putBoolean("dark_theme", enabled).apply()
+            }
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrackerApp(vm: TrackerViewModel) {
+fun TrackerApp(
+    vm: TrackerViewModel,
+    isDarkTheme: Boolean,
+    onThemeChange: (Boolean) -> Unit
+) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    var showQuickAddTask by rememberSaveable { mutableStateOf(false) }
+    var quickTaskTitle by rememberSaveable { mutableStateOf("") }
     val tabs = listOf("Today", "Study", "Goals", "Journal", "Settings")
     Scaffold(
-        containerColor = Color(0xFFFAFAFC),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -50,7 +73,7 @@ fun TrackerApp(vm: TrackerViewModel) {
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Color.White) {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 tabs.forEachIndexed { i, label ->
                     NavigationBarItem(
                         selected = tab == i,
@@ -62,8 +85,14 @@ fun TrackerApp(vm: TrackerViewModel) {
             }
         },
         floatingActionButton = {
-            if (tab == 0) FloatingActionButton(onClick = { tab = 1 }, containerColor = Accent) {
-                Text("+", color = Color.White, style = MaterialTheme.typography.headlineSmall)
+            if (tab == 0) {
+                FloatingActionButton(
+                    onClick = { showQuickAddTask = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Text("+", style = MaterialTheme.typography.headlineSmall)
+                }
             }
         }
     ) { padding ->
@@ -72,8 +101,49 @@ fun TrackerApp(vm: TrackerViewModel) {
             1 -> StudyScreen(vm, Modifier.padding(padding))
             2 -> GoalsScreen(vm, Modifier.padding(padding))
             3 -> JournalScreen(vm, Modifier.padding(padding))
-            else -> SettingsScreen(vm, Modifier.padding(padding))
+            else -> SettingsScreen(
+                vm = vm,
+                modifier = Modifier.padding(padding),
+                isDarkTheme = isDarkTheme,
+                onThemeChange = onThemeChange
+            )
         }
+    }
+
+    if (showQuickAddTask) {
+        AlertDialog(
+            onDismissRequest = {
+                showQuickAddTask = false
+                quickTaskTitle = ""
+            },
+            title = { Text("Add a task") },
+            text = {
+                OutlinedTextField(
+                    value = quickTaskTitle,
+                    onValueChange = { quickTaskTitle = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("What needs to get done?") },
+                    shape = RoundedCornerShape(16.dp)
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = quickTaskTitle.isNotBlank(),
+                    onClick = {
+                        vm.addTask(quickTaskTitle)
+                        quickTaskTitle = ""
+                        showQuickAddTask = false
+                    }
+                ) { Text("Add task") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showQuickAddTask = false
+                    quickTaskTitle = ""
+                }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -90,8 +160,8 @@ private fun ScreenColumn(modifier: Modifier, content: LazyListScope.() -> Unit) 
 @Composable
 private fun SectionTitle(title: String, subtitle: String? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ink)
-        subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Muted) }
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
@@ -100,11 +170,11 @@ private fun MetricCard(label: String, value: String, modifier: Modifier = Modifi
     ElevatedCard(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color.White)
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = Muted)
-            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ink)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -113,20 +183,20 @@ private fun MetricCard(label: String, value: String, modifier: Modifier = Modifi
 private fun ProgressCard(title: String, value: Float, supporting: String) {
     ElevatedCard(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Ink)
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("${(value * 100).toInt()}%", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(title, color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("${(value * 100).toInt()}%", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
             }
             LinearProgressIndicator(
                 progress = { value.coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                color = Color.White,
-                trackColor = Color(0xFF353840)
+                color = MaterialTheme.colorScheme.onPrimary,
+                trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.22f)
             )
-            Text(supporting, color = Color(0xFFBFC2CA), style = MaterialTheme.typography.bodySmall)
+            Text(supporting, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -156,8 +226,8 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
     ScreenColumn(modifier) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Good day, Muneer", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = Ink)
-                Text(today, style = MaterialTheme.typography.bodyMedium, color = Muted)
+                Text("Good day, Muneer", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                Text(today, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         item { ProgressCard("Today's momentum", completion, "$completedToday of $totalTasks tasks complete · $studyMinutes min studied") }
@@ -183,12 +253,12 @@ private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
 
 @Composable
 private fun TaskRow(title: String, done: Boolean, onToggle: () -> Unit, onDelete: () -> Unit) {
-    ElevatedCard(shape = RoundedCornerShape(18.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+    ElevatedCard(shape = RoundedCornerShape(18.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = CircleShape, color = if (done) Accent else SurfaceSoft, modifier = Modifier.size(36.dp)) {
-                Box(contentAlignment = Alignment.Center) { Text(if (done) "✓" else "•", color = if (done) Color.White else Muted) }
+            Surface(shape = CircleShape, color = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(36.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text(if (done) "✓" else "•", color = if (done) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            Text(title, Modifier.weight(1f).padding(horizontal = 12.dp), color = if (done) Muted else Ink, fontWeight = FontWeight.Medium)
+            Text(title, Modifier.weight(1f).padding(horizontal = 12.dp), color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
             TextButton(onClick = onToggle) { Text(if (done) "Undo" else "Done") }
             TextButton(onClick = onDelete) { Text("×") }
         }
@@ -211,22 +281,22 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
     val notes by vm.notes.collectAsStateWithLifecycle()
 
     ScreenColumn(modifier) {
-        item { Text("Study", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = Ink) }
-        item { Text("Learn → connect → test → validate → correct → remember", color = Muted) }
+        item { Text("Study", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface) }
+        item { Text("Learn → connect → test → validate → correct → remember", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         item {
-            ElevatedCard(shape = RoundedCornerShape(24.dp), colors = CardDefaults.elevatedCardColors(containerColor = AccentSoft)) {
+            ElevatedCard(shape = RoundedCornerShape(24.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Learning loop", fontWeight = FontWeight.Bold, color = Accent)
-                    Text("Record not only what you studied, but what you understood and where you made mistakes.", color = Ink)
+                    Text("Learning loop", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("Record not only what you studied, but what you understood and where you made mistakes.", color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
         item { SectionTitle("Subjects", "Your active learning map") }
         item { QuickAddField("New subject", subject, { subject = it }, "Add") { vm.addSubject(subject); subject = "" } }
-        items(subjects.take(12), key = { it.id }) { Text("• ${it.name}", Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(14.dp)).padding(14.dp), color = Ink) }
+        items(subjects.take(12), key = { it.id }) { Text("• ${it.name}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
         item { SectionTitle("Focus session") }
         item {
-            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(session, { session = it }, Modifier.fillMaxWidth(), label = { Text("What are you working on?") }, shape = RoundedCornerShape(16.dp))
                     OutlinedTextField(minutes, { minutes = it.filter(Char::isDigit) }, Modifier.fillMaxWidth(), label = { Text("Minutes") }, shape = RoundedCornerShape(16.dp))
@@ -234,10 +304,10 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
                 }
             }
         }
-        items(sessions.take(10), key = { it.id }) { Text("${it.title}  ·  ${it.durationMinutes} min", Modifier.fillMaxWidth().background(SurfaceSoft, RoundedCornerShape(14.dp)).padding(14.dp), color = Ink) }
+        items(sessions.take(10), key = { it.id }) { Text("${it.title}  ·  ${it.durationMinutes} min", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
         item { SectionTitle("Assessments") }
         item {
-            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(assessment, { assessment = it }, Modifier.fillMaxWidth(), label = { Text("Assessment") }, shape = RoundedCornerShape(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -248,10 +318,10 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
                 }
             }
         }
-        items(assessments.take(8), key = { it.id }) { Text("${it.title}  ·  ${it.score}/${it.total}", Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(14.dp)).padding(14.dp), color = Ink) }
+        items(assessments.take(8), key = { it.id }) { Text("${it.title}  ·  ${it.score}/${it.total}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
         item { SectionTitle("Knowledge notes", "Capture mistakes and insights while they are fresh") }
         item {
-            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(noteTitle, { noteTitle = it }, Modifier.fillMaxWidth(), label = { Text("Note title") }, shape = RoundedCornerShape(16.dp))
                     OutlinedTextField(noteBody, { noteBody = it }, Modifier.fillMaxWidth(), minLines = 4, label = { Text("What did I learn / get wrong?") }, shape = RoundedCornerShape(16.dp))
@@ -259,7 +329,7 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
                 }
             }
         }
-        items(notes.take(8), key = { it.id }) { Text("${it.title}: ${it.content.take(140)}", Modifier.fillMaxWidth().background(SurfaceSoft, RoundedCornerShape(14.dp)).padding(14.dp), color = Ink) }
+        items(notes.take(8), key = { it.id }) { Text("${it.title}: ${it.content.take(140)}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
     }
 }
 
@@ -275,8 +345,8 @@ private fun GoalsScreen(vm: TrackerViewModel, modifier: Modifier) {
     val reviews by vm.weeklyReviews.collectAsStateWithLifecycle()
 
     ScreenColumn(modifier) {
-        item { Text("Goals & Projects", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = Ink) }
-        item { Text("Turn long-term plans into visible progress.", color = Muted) }
+        item { Text("Goals & Projects", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface) }
+        item { Text("Turn long-term plans into visible progress.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MetricCard("Tasks", completedTasks.toString(), Modifier.weight(1f))
@@ -287,10 +357,10 @@ private fun GoalsScreen(vm: TrackerViewModel, modifier: Modifier) {
         item { SectionTitle("Goals") }
         item { QuickAddField("New goal", goal, { goal = it }, "Add") { vm.addGoal(goal); goal = "" } }
         items(goals, key = { it.id }) { g ->
-            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(g.title, fontWeight = FontWeight.Bold, color = Ink); Text("${g.progress}%", fontWeight = FontWeight.Bold, color = Accent) }
-                    LinearProgressIndicator(progress = { (g.progress / 100f).coerceIn(0f, 1f) }, Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = Accent, trackColor = SurfaceSoft)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(g.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface); Text("${g.progress}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) }
+                    LinearProgressIndicator(progress = { (g.progress / 100f).coerceIn(0f, 1f) }, Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { TextButton({ vm.updateGoal(g, (g.progress + 10).coerceAtMost(100)) }) { Text("+10") }; TextButton({ vm.updateGoal(g, (g.progress - 10).coerceAtLeast(0)) }) { Text("-10") }; TextButton({ vm.deleteGoal(g) }) { Text("Delete") } }
                 }
             }
@@ -298,9 +368,9 @@ private fun GoalsScreen(vm: TrackerViewModel, modifier: Modifier) {
         item { SectionTitle("Projects") }
         item { QuickAddField("New project", project, { project = it }, "Add") { vm.addProject(project); project = "" } }
         items(projects, key = { it.id }) { p ->
-            ElevatedCard(shape = RoundedCornerShape(18.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+            ElevatedCard(shape = RoundedCornerShape(18.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) { Text(p.name, fontWeight = FontWeight.Bold, color = Ink); Text(p.status, color = Muted, style = MaterialTheme.typography.bodySmall) }
+                    Column(Modifier.weight(1f)) { Text(p.name, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface); Text(p.status, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall) }
                     TextButton({ vm.deleteProject(p) }) { Text("Delete") }
                 }
             }
@@ -308,7 +378,7 @@ private fun GoalsScreen(vm: TrackerViewModel, modifier: Modifier) {
         item { SectionTitle("Weekly review", "Close the loop every week") }
         item { WeeklyReviewCard(vm) }
         items(reviews.take(4), key = { it.id }) { r ->
-            ElevatedCard(shape = RoundedCornerShape(18.dp), colors = CardDefaults.elevatedCardColors(containerColor = SurfaceSoft)) {
+            ElevatedCard(shape = RoundedCornerShape(18.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) { Text(r.weekStart, fontWeight = FontWeight.Bold); Text("Win: ${r.wins}"); Text("Blocker: ${r.blockers}"); Text("Next: ${r.nextFocus}") }
             }
         }
@@ -321,7 +391,7 @@ private fun WeeklyReviewCard(vm: TrackerViewModel) {
     var wins by rememberSaveable { mutableStateOf("") }
     var blockers by rememberSaveable { mutableStateOf("") }
     var next by rememberSaveable { mutableStateOf("") }
-    ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+    ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             OutlinedTextField(wins, { wins = it }, Modifier.fillMaxWidth(), label = { Text("What went well?") }, shape = RoundedCornerShape(16.dp))
             OutlinedTextField(blockers, { blockers = it }, Modifier.fillMaxWidth(), label = { Text("What blocked me?") }, shape = RoundedCornerShape(16.dp))
@@ -337,23 +407,32 @@ private fun JournalScreen(vm: TrackerViewModel, modifier: Modifier) {
     var body by rememberSaveable { mutableStateOf("") }
     val journal by vm.journal.collectAsStateWithLifecycle()
     ScreenColumn(modifier) {
-        item { Text("Journal", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = Ink) }
-        item { Text("Think clearly. Record what matters. Learn from the week.", color = Muted) }
+        item { Text("Journal", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface) }
+        item { Text("Think clearly. Record what matters. Learn from the week.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         item {
-            ElevatedCard(shape = RoundedCornerShape(24.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+            ElevatedCard(shape = RoundedCornerShape(24.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(title, { title = it }, Modifier.fillMaxWidth(), label = { Text("Title") }, shape = RoundedCornerShape(16.dp))
                     OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(), minLines = 7, label = { Text("What happened today?") }, shape = RoundedCornerShape(16.dp))
-                    Button(onClick = { vm.addJournal(title, body); title = ""; body = "" }, enabled = body.isNotBlank(), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) { Text("Save entry") }
+                    Button(
+                        onClick = {
+                            vm.addJournal(title.trim(), body.trim())
+                            title = ""
+                            body = ""
+                        },
+                        enabled = title.isNotBlank() && body.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp)
+                    ) { Text("Save entry") }
                 }
             }
         }
         items(journal, key = { it.id }) { entry ->
-            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text(if (entry.title.isBlank()) entry.date else entry.title, fontWeight = FontWeight.Bold, color = Ink)
-                    Text(entry.content, color = Ink)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text(entry.date, style = MaterialTheme.typography.labelSmall, color = Muted); TextButton({ vm.deleteJournal(entry) }) { Text("Delete") } }
+                    Text(if (entry.title.isBlank()) entry.date else entry.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(entry.content, color = MaterialTheme.colorScheme.onSurface)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text(entry.date, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant); TextButton({ vm.deleteJournal(entry) }) { Text("Delete") } }
                 }
             }
         }
@@ -361,7 +440,12 @@ private fun JournalScreen(vm: TrackerViewModel, modifier: Modifier) {
 }
 
 @Composable
-private fun SettingsScreen(vm: TrackerViewModel, modifier: Modifier) {
+private fun SettingsScreen(
+    vm: TrackerViewModel,
+    modifier: Modifier,
+    isDarkTheme: Boolean,
+    onThemeChange: (Boolean) -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var pendingUri by remember { mutableStateOf<Uri?>(null) }
@@ -390,13 +474,35 @@ private fun SettingsScreen(vm: TrackerViewModel, modifier: Modifier) {
     }
 
     ScreenColumn(modifier) {
-        item { Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = Ink) }
-        item { Text("Keep your data local, portable and under your control.", color = Muted) }
+        item { Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface) }
+        item { Text("Keep your data local, portable and under your control.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         item {
-            ElevatedCard(shape = RoundedCornerShape(22.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color.White)) {
+            ElevatedCard(
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Appearance", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            if (isDarkTheme) "Dark mode · Midnight slate" else "Light mode · Soft contrast",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = isDarkTheme, onCheckedChange = onThemeChange)
+                }
+            }
+        }
+        item {
+            ElevatedCard(shape = RoundedCornerShape(22.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Data & backup", fontWeight = FontWeight.Bold, color = Ink)
-                    Text("Export a portable JSON backup. Importing replaces the current local data after confirmation.", color = Muted)
+                    Text("Data & backup", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Export a portable JSON backup. Importing replaces the current local data after confirmation.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }, enabled = !busy, shape = RoundedCornerShape(16.dp)) { Text("Import") }
                         Button(onClick = { exportLauncher.launch("tracker-backup-${SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())}.json") }, enabled = !busy, shape = RoundedCornerShape(16.dp)) { Text(if (busy) "Preparing…" else "Export") }
@@ -406,10 +512,10 @@ private fun SettingsScreen(vm: TrackerViewModel, modifier: Modifier) {
             }
         }
         item {
-            ElevatedCard(shape = RoundedCornerShape(22.dp), colors = CardDefaults.elevatedCardColors(containerColor = SurfaceSoft)) {
+            ElevatedCard(shape = RoundedCornerShape(22.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Tracker v3", fontWeight = FontWeight.Bold, color = Ink)
-                    Text("Offline-first personal operating system · Room database · Jetpack Compose", color = Muted)
+                    Text("Tracker v3", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Offline-first personal operating system · Room database · Jetpack Compose", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
