@@ -209,6 +209,7 @@ private fun QuickAddField(label: String, value: String, onValueChange: (String) 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodayScreen(vm: TrackerViewModel, modifier: Modifier) {
     val today by vm.todayDate.collectAsStateWithLifecycle()
