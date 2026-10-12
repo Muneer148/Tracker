@@ -1,5 +1,6 @@
 package com.muneer.tracker.ui
 
+import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
@@ -17,9 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.theme.MyApplicationTheme
 import com.muneer.tracker.TrackerViewModel
@@ -37,6 +40,19 @@ fun TrackerRoot(vm: TrackerViewModel) {
     }
     var darkTheme by remember {
         mutableStateOf(preferences.getBoolean("dark_theme", true))
+    }
+    val activity = context as? Activity
+
+    SideEffect {
+        activity?.window?.let { window ->
+            val barColor = if (darkTheme) Color(0xFF0B1120) else Color(0xFFF7F8FC)
+            window.statusBarColor = barColor.toArgb()
+            window.navigationBarColor = barColor.toArgb()
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
     }
 
     MyApplicationTheme(darkTheme = darkTheme) {
