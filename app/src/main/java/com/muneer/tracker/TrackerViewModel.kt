@@ -87,12 +87,13 @@ class TrackerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun addTask(v: String) = viewModelScope.launch {
-        if (v.isNotBlank()) {
+    fun addTask(v: String, priority: Int = 2) = viewModelScope.launch {
+        val title = v.trim()
+        if (title.isNotEmpty()) {
             val date = today
             val id = dayId(date)
             dao.upsertDay(DayEntity(id = id, date = date))
-            dao.insertTask(TaskEntity(dayId = id, title = v.trim()))
+            dao.insertTask(TaskEntity(dayId = id, title = title, priority = priority.coerceIn(1, 3)))
         }
     }
     fun deleteTask(v: TaskEntity) = viewModelScope.launch { dao.deleteTask(v) }
