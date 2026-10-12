@@ -110,7 +110,7 @@ data class KnowledgeNoteEntity(@PrimaryKey val id:String=UUID.randomUUID().toStr
  @Query("SELECT * FROM study_sessions ORDER BY date DESC,createdAt DESC") fun studySessions():Flow<List<StudySessionEntity>>
  @Insert suspend fun insertAssessment(assessment:AssessmentEntity)
  @Query("SELECT * FROM assessments ORDER BY date DESC,createdAt DESC") fun assessments():Flow<List<AssessmentEntity>>
- @Insert suspend fun insertWeeklyReview(review:WeeklyReviewEntity)
+ @Insert(onConflict=OnConflictStrategy.REPLACE) suspend fun insertWeeklyReview(review:WeeklyReviewEntity)
  @Query("SELECT * FROM weekly_reviews ORDER BY weekStart DESC") fun weeklyReviews():Flow<List<WeeklyReviewEntity>>
  @Query("SELECT COUNT(*) FROM tasks WHERE completed=1") fun completedTaskCount():Flow<Int>
  @Query("SELECT COALESCE(SUM(durationMinutes),0) FROM study_sessions") fun totalStudyMinutes():Flow<Int>
