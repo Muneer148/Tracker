@@ -2,6 +2,7 @@ package com.muneer.tracker
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import com.muneer.tracker.data.isValidJournalEntry
 import org.junit.Test
 
 class TrackerModelTest {
@@ -13,5 +14,12 @@ class TrackerModelTest {
 
     @Test fun emptyTaskIsNotAccepted() {
         assertTrue("   ".isBlank())
+    }
+
+    @Test fun journalRequiresNonblankTitleAndContent() {
+        assertTrue(isValidJournalEntry("GATE revision", "Reviewed conditional probability."))
+        assertTrue(!isValidJournalEntry("", "Some content"))
+        assertTrue(!isValidJournalEntry("A title", ""))
+        assertTrue(!isValidJournalEntry("   ", "   "))
     }
 }
