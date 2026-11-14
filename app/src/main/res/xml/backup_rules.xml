@@ -2,5 +2,4 @@
 <full-backup-content>
     <include domain="sharedpref" path="tracker_preferences.xml"/>
     <exclude domain="database" path="tracker_v2.db"/>
-    <exclude domain="file" path="."/>
 </full-backup-content>
