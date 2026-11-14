@@ -5,8 +5,12 @@ import org.json.JSONObject
 import androidx.room.withTransaction
 
 object TrackerBackup {
-    const val FORMAT_VERSION = 1
-    const val DATABASE_VERSION = 1
+    const val FORMAT_VERSION = 3
+    const val DATABASE_VERSION = 3
+
+    // Supported legacy format versions for backward compatibility
+    private val SUPPORTED_FORMAT_VERSIONS = setOf(1, 2, 3)
+    private val SUPPORTED_DATABASE_VERSIONS = setOf(1, 2, 3)
 
     fun createJson(
         days: List<DayEntity>,
@@ -22,7 +26,9 @@ object TrackerBackup {
         studySessions: List<StudySessionEntity>,
         assessments: List<AssessmentEntity>,
         knowledgeNotes: List<KnowledgeNoteEntity>,
-        weeklyReviews: List<WeeklyReviewEntity>
+        weeklyReviews: List<WeeklyReviewEntity>,
+        examinations: List<ExaminationEntity>,
+        topicExaminationLinks: List<TopicExaminationLinkEntity>
     ): String {
         val root = JSONObject()
             .put("formatVersion", FORMAT_VERSION)
@@ -98,6 +104,16 @@ object TrackerBackup {
             .put("id", it.id).put("weekStart", it.weekStart).put("wins", it.wins)
             .put("blockers", it.blockers).put("nextFocus", it.nextFocus).put("createdAt", it.createdAt)) } })
 
+        root.put("examinations", JSONArray().also { a -> examinations.forEach { a.put(JSONObject()
+            .put("id", it.id).put("subjectId", it.subjectId).put("title", it.title)
+            .put("date", it.date).put("syllabusCoverage", it.syllabusCoverage)
+            .putNullableInt("manualCoverageOverride", it.manualCoverageOverride)
+            .put("status", it.status).put("createdAt", it.createdAt).put("updatedAt", it.updatedAt)) } })
+
+        root.put("topicExaminationLinks", JSONArray().also { a -> topicExaminationLinks.forEach { a.put(JSONObject()
+            .put("topicId", it.topicId).put("examinationId", it.examinationId)
+            .put("createdAt", it.createdAt)) } })
+
         return root.toString(2)
     }
 
@@ -115,13 +131,17 @@ object TrackerBackup {
         val studySessions: List<StudySessionEntity>,
         val assessments: List<AssessmentEntity>,
         val knowledgeNotes: List<KnowledgeNoteEntity>,
-        val weeklyReviews: List<WeeklyReviewEntity>
+        val weeklyReviews: List<WeeklyReviewEntity>,
+        val examinations: List<ExaminationEntity>,
+        val topicExaminationLinks: List<TopicExaminationLinkEntity>
     )
 
     fun parseAndValidate(json: String): RestoreData {
         val root = JSONObject(json)
-        require(root.optInt("formatVersion", -1) == FORMAT_VERSION) { "Unsupported backup format version." }
-        require(root.optInt("databaseVersion", -1) == DATABASE_VERSION) { "Unsupported database version." }
+        val formatVersion = root.optInt("formatVersion", -1)
+        val databaseVersion = root.optInt("databaseVersion", -1)
+        require(formatVersion in SUPPORTED_FORMAT_VERSIONS) { "Unsupported backup format version: $formatVersion. Supported: $SUPPORTED_FORMAT_VERSIONS" }
+        require(databaseVersion in SUPPORTED_DATABASE_VERSIONS) { "Unsupported database version: $databaseVersion. Supported: $SUPPORTED_DATABASE_VERSIONS" }
         require(root.has("exportedAt")) { "Backup is missing exportedAt." }
 
         fun array(name: String) = root.optJSONArray(name) ?: error("Backup is missing $name.")
@@ -199,7 +219,7 @@ object TrackerBackup {
             val a=array("studyTopics"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudyTopicEntity(requiredString(o,"id"),requiredString(o,"subjectId"),requiredString(o,"name"),optionalString(o,"status","TODO"),optionalInt(o,"difficulty",2),optionalString(o,"notes"),requiredLong(o,"updatedAt")))}
         }
         val studySessions = buildList {
-            val a=array("studySessions"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudySessionEntity(requiredString(o,"id"),requiredString(o,"date"),nullableString(o,"subjectId"),nullableString(o,"topicId"),requiredString(o,"title"),optionalInt(o,"durationMinutes",0),optionalInt(o,"quality",3),optionalString(o,"notes"),requiredLong(o,"createdAt")))}
+            val a=array("studySessions"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(StudySessionEntity(requiredString(o,"id"),requiredString(o,"date"),nullableString(o,"subjectId"),nullableString(o,"topicId"),nullableString(o,"examinationId"),requiredString(o,"title"),optionalInt(o,"durationMinutes",0),optionalInt(o,"quality",3),optionalString(o,"notes"),requiredLong(o,"createdAt")))}
         }
         val assessments = buildList {
             val a=array("assessments"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(AssessmentEntity(requiredString(o,"id"),requiredString(o,"date"),nullableString(o,"subjectId"),requiredString(o,"title"),optionalDouble(o,"score"),optionalDouble(o,"total"),optionalString(o,"mistakes"),requiredLong(o,"createdAt")));require(last().score.isFinite()&&last().total.isFinite()){"Invalid assessment score."}}
@@ -210,9 +230,49 @@ object TrackerBackup {
         val weeklyReviews = buildList {
             val a=array("weeklyReviews"); for(i in 0 until a.length()){val o=a.getJSONObject(i);add(WeeklyReviewEntity(requiredString(o,"id"),requiredString(o,"weekStart"),optionalString(o,"wins"),optionalString(o,"blockers"),optionalString(o,"nextFocus"),requiredLong(o,"createdAt")))}
         }
+        // examinations array is optional for backward compatibility with format version 1
+        val examinations = if (root.has("examinations") && !root.isNull("examinations")) {
+            val a = root.getJSONArray("examinations")
+            buildList {
+                for(i in 0 until a.length()){
+                    val o=a.getJSONObject(i)
+                    add(ExaminationEntity(
+                        requiredString(o,"id"),
+                        requiredString(o,"subjectId"),
+                        requiredString(o,"title"),
+                        requiredString(o,"date"),
+                        optionalInt(o,"syllabusCoverage",0),
+                        nullableInt(o,"manualCoverageOverride"),
+                        optionalString(o,"status","UPCOMING"),
+                        requiredLong(o,"createdAt"),
+                        requiredLong(o,"updatedAt")
+                    ))
+                }
+            }
+        } else {
+            emptyList()
+        }
+        // topicExaminationLinks array is optional for backward compatibility with format version 1-2
+        val topicExaminationLinks = if (root.has("topicExaminationLinks") && !root.isNull("topicExaminationLinks")) {
+            val a = root.getJSONArray("topicExaminationLinks")
+            buildList {
+                for(i in 0 until a.length()){
+                    val o=a.getJSONObject(i)
+                    add(TopicExaminationLinkEntity(
+                        requiredString(o,"topicId"),
+                        requiredString(o,"examinationId"),
+                        requiredLong(o,"createdAt")
+                    ))
+                }
+            }
+        } else {
+            emptyList()
+        }
 
-        uniqueIds(days){it.id}; uniqueIds(tasks){it.id}; uniqueIds(habits){it.id}; uniqueIds(activities){it.id}; uniqueIds(goals){it.id}; uniqueIds(projects){it.id}; uniqueIds(journalEntries){it.id}; uniqueIds(studySubjects){it.id}; uniqueIds(studyTopics){it.id}; uniqueIds(studySessions){it.id}; uniqueIds(assessments){it.id}; uniqueIds(knowledgeNotes){it.id}; uniqueIds(weeklyReviews){it.id}
-        val dayIds=days.map{it.id}.toSet(); val habitIds=habits.map{it.id}.toSet(); val projectIds=projects.map{it.id}.toSet(); val goalIds=goals.map{it.id}.toSet(); val subjectIds=studySubjects.map{it.id}.toSet(); val topicIds=studyTopics.map{it.id}.toSet()
+        uniqueIds(days){it.id}; uniqueIds(tasks){it.id}; uniqueIds(habits){it.id}; uniqueIds(activities){it.id}; uniqueIds(goals){it.id}; uniqueIds(projects){it.id}; uniqueIds(journalEntries){it.id}; uniqueIds(studySubjects){it.id}; uniqueIds(studyTopics){it.id}; uniqueIds(studySessions){it.id}; uniqueIds(assessments){it.id}; uniqueIds(knowledgeNotes){it.id}; uniqueIds(weeklyReviews){it.id}; uniqueIds(examinations){it.id}; uniqueIds(topicExaminationLinks, { "${it.topicId}-${it.examinationId}" })
+        val dayIds=days.map{it.id}.toSet(); val habitIds=habits.map{it.id}.toSet(); val projectIds=projects.map{it.id}.toSet(); val goalIds=goals.map{it.id}.toSet(); val subjectIds=studySubjects.map{it.id}.toSet()
+        val topicIds = studyTopics.map { it.id }.toSet()
+        val examinationIds = examinations.map { it.id }.toSet()
         require(tasks.all{it.dayId in dayIds && (it.projectId==null || it.projectId in projectIds)}){"Task references missing data."}
         require(habitLogs.all{it.habitId in habitIds}){"Habit log references missing habit."}
         require(projects.all{it.goalId==null || it.goalId in goalIds}){"Project references missing goal."}
@@ -220,19 +280,29 @@ object TrackerBackup {
         require(studySessions.all{(it.subjectId==null||it.subjectId in subjectIds)&&(it.topicId==null||it.topicId in topicIds)}){"Study session references missing data."}
         require(assessments.all{it.subjectId==null||it.subjectId in subjectIds}){"Assessment references missing subject."}
         require(knowledgeNotes.all{it.topicId==null||it.topicId in topicIds}){"Knowledge note references missing topic."}
+        require(examinations.all{it.subjectId in subjectIds}){"Examination references missing subject."}
+        require(examinations.all { it.syllabusCoverage in 0..100 }) { "Examination syllabusCoverage must be 0-100." }
+        require(examinations.all { it.manualCoverageOverride == null || it.manualCoverageOverride in 0..100 }) { "Examination manualCoverageOverride must be 0-100." }
+        require(examinations.all { it.status in setOf("UPCOMING", "IN_PROGRESS", "COMPLETED") }) { "Examination status must be UPCOMING, IN_PROGRESS, or COMPLETED." }
+        // Validate topic-examination links
+        require(topicExaminationLinks.all { it.topicId in topicIds && it.examinationId in examinationIds }) { "Topic-examination link references missing topic or examination." }
+        // Validate same-subject rule for links
+        val topicSubjectMap = studyTopics.associateBy({ it.id }, { it.subjectId })
+        val examSubjectMap = examinations.associateBy({ it.id }, { it.subjectId })
+        require(topicExaminationLinks.all { topicSubjectMap[it.topicId] == examSubjectMap[it.examinationId] }) { "Topic-examination link violates same-subject rule." }
         require(days.map{it.date}.toSet().size==days.size){"Duplicate day dates in backup."}
         require(habits.map{it.name}.toSet().size==habits.size){"Duplicate habit names in backup."}
         require(studySubjects.map{it.name}.toSet().size==studySubjects.size){"Duplicate subject names in backup."}
         require(weeklyReviews.map{it.weekStart}.toSet().size==weeklyReviews.size){"Duplicate weekly review dates in backup."}
 
-        return RestoreData(days,tasks,habits,habitLogs,activities,goals,projects,journalEntries,studySubjects,studyTopics,studySessions,assessments,knowledgeNotes,weeklyReviews)
+        return RestoreData(days,tasks,habits,habitLogs,activities,goals,projects,journalEntries,studySubjects,studyTopics,studySessions,assessments,knowledgeNotes,weeklyReviews,examinations,topicExaminationLinks)
     }
 
     suspend fun restore(db: TrackerDatabase, data: RestoreData) {
         db.withTransaction {
             val d=db.trackerDao()
-            d.clearHabitLogs(); d.clearTasks(); d.clearStudySessions(); d.clearAssessments(); d.clearKnowledgeNotes(); d.clearStudyTopics(); d.clearStudySubjects(); d.clearJournalEntries(); d.clearActivities(); d.clearProjects(); d.clearGoals(); d.clearWeeklyReviews(); d.clearHabits(); d.clearDays()
-            d.insertDays(data.days); d.insertGoals(data.goals); d.insertProjects(data.projects); d.insertHabits(data.habits); d.insertTasks(data.tasks); d.insertHabitLogs(data.habitLogs); d.insertActivities(data.activities); d.insertJournalEntries(data.journalEntries); d.insertStudySubjects(data.studySubjects); d.insertStudyTopics(data.studyTopics); d.insertStudySessions(data.studySessions); d.insertAssessments(data.assessments); d.insertKnowledgeNotes(data.knowledgeNotes); d.insertWeeklyReviews(data.weeklyReviews)
+            d.clearHabitLogs(); d.clearTasks(); d.clearStudySessions(); d.clearAssessments(); d.clearKnowledgeNotes(); d.clearStudyTopics(); d.clearStudySubjects(); d.clearJournalEntries(); d.clearActivities(); d.clearProjects(); d.clearGoals(); d.clearWeeklyReviews(); d.clearHabits(); d.clearDays(); d.clearExaminations(); d.clearTopicExaminationLinks()
+            d.insertDays(data.days); d.insertGoals(data.goals); d.insertProjects(data.projects); d.insertHabits(data.habits); d.insertTasks(data.tasks); d.insertHabitLogs(data.habitLogs); d.insertActivities(data.activities); d.insertJournalEntries(data.journalEntries); d.insertStudySubjects(data.studySubjects); d.insertStudyTopics(data.studyTopics); d.insertStudySessions(data.studySessions); d.insertAssessments(data.assessments); d.insertKnowledgeNotes(data.knowledgeNotes); d.insertWeeklyReviews(data.weeklyReviews); d.insertExaminations(data.examinations); d.insertTopicExaminationLinks(data.topicExaminationLinks)
         }
     }
 

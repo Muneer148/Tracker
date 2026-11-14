@@ -7,9 +7,9 @@ concurrency:
 
 on:
   push:
-    branches: [dev, dev-v3, planner-timer-v3, main]
+    branches: [dev, dev-v3, planner-timer-v3, main, work/tracker-development]
   pull_request:
-    branches: [dev, dev-v3, planner-timer-v3, main]
+    branches: [dev, dev-v3, planner-timer-v3, main, work/tracker-development]
 
 jobs:
   build:

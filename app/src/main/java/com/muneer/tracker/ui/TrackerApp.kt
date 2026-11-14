@@ -13,6 +13,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -354,6 +359,60 @@ private fun TaskRow(
 }
 
 @Composable
+private fun TopicRow(
+    topic: com.muneer.tracker.data.StudyTopicEntity,
+    linkedExamNames: List<String>,
+    onLink: (com.muneer.tracker.data.ExaminationEntity) -> Unit,
+    onUnlink: (com.muneer.tracker.data.TopicExaminationLinkEntity) -> Unit,
+    examinations: List<com.muneer.tracker.data.ExaminationEntity>,
+    topicExamLinks: List<com.muneer.tracker.data.TopicExaminationLinkEntity>
+) {
+    val availableExams = examinations.filter { exam ->
+        !linkedExamNames.contains(exam.title)
+    }
+    var showLinkMenu by remember { mutableStateOf(false) }
+
+    ElevatedCard(shape = RoundedCornerShape(16.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text(topic.name, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Status: ${topic.status}  ·  Difficulty: ${topic.difficulty}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = { showLinkMenu = true }) { Text("Link Exam") }
+            }
+            if (linkedExamNames.isNotEmpty()) {
+                Text("Linked: ${linkedExamNames.joinToString(", ")}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                linkedExamNames.forEach { examName ->
+                    val linkEntity = topicExamLinks.firstOrNull { link ->
+                        link.topicId == topic.id && examinations.find { exam -> exam.id == link.examinationId }?.title == examName
+                    }
+                    linkEntity?.let { link ->
+                        TextButton(onClick = { onUnlink(link) }) { Text("Unlink $examName") }
+                    }
+                }
+            }
+            if (availableExams.isNotEmpty()) {
+                DropdownMenu(
+                    expanded = showLinkMenu,
+                    onDismissRequest = { showLinkMenu = false }
+                ) {
+                    availableExams.forEach { exam ->
+                        DropdownMenuItem(
+                            text = { Text("Link to ${exam.title} (${exam.date})") },
+                            onClick = {
+                                onLink(exam)
+                                showLinkMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
     var subject by rememberSaveable { mutableStateOf("") }
     var session by rememberSaveable { mutableStateOf("") }
@@ -363,9 +422,15 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
     var total by rememberSaveable { mutableStateOf("") }
     var noteTitle by rememberSaveable { mutableStateOf("") }
     var noteBody by rememberSaveable { mutableStateOf("") }
+    var examTitle by rememberSaveable { mutableStateOf("") }
+    var examDate by rememberSaveable { mutableStateOf("") }
+    var coverageOverride by rememberSaveable { mutableStateOf("") }
     val subjects by vm.subjects.collectAsStateWithLifecycle()
+    val topics by vm.topics.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
     val assessments by vm.assessments.collectAsStateWithLifecycle()
+    val examinations by vm.examinations.collectAsStateWithLifecycle()
+    val topicExamLinks by vm.topicExaminationLinks.collectAsStateWithLifecycle()
     val notes by vm.notes.collectAsStateWithLifecycle()
 
     ScreenColumn(modifier) {
@@ -382,17 +447,95 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
         item { SectionTitle("Subjects", "Your active learning map") }
         item { QuickAddField("New subject", subject, { subject = it }, "Add") { vm.addSubject(subject); subject = "" } }
         items(subjects, key = { it.id }) { Text("• ${it.name}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
+        item { SectionTitle("Topics", "Link topics to examinations for syllabus tracking") }
+        items(subjects, key = { it.id }) { sub ->
+            val subjectTopics = topics.filter { it.subjectId == sub.id }
+            if (subjectTopics.isNotEmpty()) {
+                subjectTopics.forEach { topic ->
+                    val linkedExams = topicExamLinks.filter { it.topicId == topic.id }
+                    val linkedExamNames = linkedExams.mapNotNull { link ->
+                        examinations.find { it.id == link.examinationId }?.title
+                    }
+                    val topicStatus = topic.status
+                    TopicRow(
+                        topic = topic,
+                        linkedExamNames = linkedExamNames,
+                        onLink = { exam -> vm.linkTopicToExamination(topic.id, exam.id) },
+                        onUnlink = { link -> vm.unlinkTopicFromExamination(link.topicId, link.examinationId) },
+                        examinations = examinations.filter { it.subjectId == sub.id },
+                        topicExamLinks = topicExamLinks
+                    )
+                }
+            } else {
+                Text("• No topics for ${sub.name}. Add one below.",
+                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        item { QuickAddField("New topic for ${subjects.firstOrNull()?.name ?: "subject"}", session, { session = it }, "Add") {
+            subjects.firstOrNull()?.let { vm.addTopic(it.id, session); session = "" }
+        } }
         item { SectionTitle("Focus session") }
         item {
             ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(session, { session = it }, Modifier.fillMaxWidth(), label = { Text("What are you working on?") }, shape = RoundedCornerShape(16.dp))
                     OutlinedTextField(minutes, { minutes = it.filter(Char::isDigit) }, Modifier.fillMaxWidth(), label = { Text("Minutes") }, shape = RoundedCornerShape(16.dp))
-                    Button(onClick = { vm.addSession(session, minutes.toIntOrNull() ?: 0); session = "" }, enabled = session.isNotBlank(), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) { Text("Log session") }
+                    // Exam-aware session logging
+                    val subjectTopics = topics.filter { it.subjectId == subjects.firstOrNull()?.id }
+                    val linkedTopics = subjectTopics.filter { topic ->
+                        topicExamLinks.any { it.topicId == topic.id }
+                    }
+                    var selectedExamId by rememberSaveable { mutableStateOf<String?>(null) }
+                    var showExamDropdown by remember { mutableStateOf(false) }
+                    val examOptions = linkedTopics.flatMap { topic ->
+                        topicExamLinks.filter { it.topicId == topic.id }.mapNotNull { link ->
+                            examinations.find { it.id == link.examinationId }
+                        }
+                    }.distinctBy { it.id }
+                    if (examOptions.isNotEmpty()) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                selectedExamId?.let { id -> examinations.find { it.id == id }?.title }
+                                    ?: "Link to examination (optional)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            TextButton(onClick = { showExamDropdown = true }) { Text("Select") }
+                        }
+                        DropdownMenu(
+                            expanded = showExamDropdown,
+                            onDismissRequest = { showExamDropdown = false }
+                        ) {
+                            examOptions.forEach { exam ->
+                                DropdownMenuItem(
+                                    onClick = {
+                                        selectedExamId = exam.id
+                                        showExamDropdown = false
+                                    },
+                                    text = { Text("${exam.title} (${exam.date})") }
+                                )
+                            }
+                        }
+                    }
+                    Button(onClick = {
+                        vm.addSession(
+                            v = session,
+                            m = minutes.toIntOrNull() ?: 0,
+                            subjectId = subjects.firstOrNull()?.id,
+                            examinationId = selectedExamId
+                        )
+                        session = ""
+                    }, enabled = session.isNotBlank(), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) { Text("Log session") }
                 }
             }
         }
-        items(sessions, key = { it.id }) { Text("${it.title}  ·  ${it.durationMinutes} min", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
+        items(sessions, key = { it.id }) { sess ->
+            val examName = sess.examinationId?.let { examId -> examinations.find { it.id == examId }?.title }
+            Text("${sess.title}  ·  ${sess.durationMinutes} min${examName?.let { "  ·  Exam: $it" } ?: ""}",
+                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp)).padding(14.dp),
+                color = MaterialTheme.colorScheme.onSurface)
+        }
         item { SectionTitle("Assessments") }
         item {
             ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -407,6 +550,91 @@ private fun StudyScreen(vm: TrackerViewModel, modifier: Modifier) {
             }
         }
         items(assessments, key = { it.id }) { Text("${it.title}  ·  ${it.score}/${it.total}", Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp)).padding(14.dp), color = MaterialTheme.colorScheme.onSurface) }
+        item { SectionTitle("Examinations", "Track upcoming exams and syllabus coverage") }
+        item {
+            ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(examTitle, { examTitle = it }, Modifier.fillMaxWidth(), label = { Text("Exam title") }, shape = RoundedCornerShape(16.dp))
+                    OutlinedTextField(examDate, { examDate = it.filter { it.isDigit() || it == '-' } }, Modifier.fillMaxWidth(), label = { Text("Date (yyyy-MM-dd)") }, shape = RoundedCornerShape(16.dp))
+                    Button(onClick = { vm.addExamination(subjects.firstOrNull()?.id ?: "", examTitle, examDate); examTitle = ""; examDate = "" }, enabled = examTitle.isNotBlank() && examDate.isNotBlank() && subjects.isNotEmpty(), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) { Text("Add exam") }
+                }
+            }
+        }
+        items(examinations, key = { it.id }) { exam ->
+            // Compute topic-based coverage
+            val linkedTopics = topicExamLinks.filter { it.examinationId == exam.id }.mapNotNull { link ->
+                topics.find { it.id == link.topicId }
+            }
+            val completedLinkedTopics = linkedTopics.count { it.status == "COMPLETED" }
+            val totalLinkedTopics = linkedTopics.size
+            val computedCoverage = if (totalLinkedTopics > 0) {
+                (completedLinkedTopics * 100 / totalLinkedTopics)
+            } else {
+                -1 // unavailable
+            }
+            val effectiveCoverage = exam.manualCoverageOverride ?: if (computedCoverage >= 0) computedCoverage else exam.syllabusCoverage
+            val showComputed = computedCoverage >= 0
+
+            ElevatedCard(shape = RoundedCornerShape(18.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column { Text(exam.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface); Text(exam.date, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        Text(exam.status, fontWeight = FontWeight.Bold, color = when (exam.status) { "COMPLETED" -> MaterialTheme.colorScheme.primary; "IN_PROGRESS" -> MaterialTheme.colorScheme.tertiary; else -> MaterialTheme.colorScheme.onSurfaceVariant })
+                    }
+                    // Effective coverage progress
+                    LinearProgressIndicator(progress = { (effectiveCoverage / 100f).coerceIn(0f, 1f) }, Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
+                    // Coverage breakdown
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Effective: ${effectiveCoverage}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(when {
+                                exam.manualCoverageOverride != null -> "Manual override active"
+                                showComputed -> "From ${completedLinkedTopics}/$totalLinkedTopics topics"
+                                else -> "Manual entry (no linked topics)"
+                            }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (showComputed && exam.manualCoverageOverride != null) {
+                            Text("Computed: ${computedCoverage}%  ·  Manual baseline: ${exam.syllabusCoverage}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else if (showComputed) {
+                            Text("Computed from linked topics: ${computedCoverage}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            Text("Manual entry: ${exam.syllabusCoverage}%  ·  Link topics to enable computed coverage", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    // Manual coverage override
+                    var coverageText by remember { mutableStateOf(exam.manualCoverageOverride?.toString() ?: "") }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = coverageText,
+                            onValueChange = { coverageText = it.filter { it.isDigit() } },
+                            label = { Text("Manual override (0-100, empty=auto)") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        TextButton(onClick = {
+                            val value = coverageText.toIntOrNull()
+                            if (value != null && value in 0..100) {
+                                vm.setExaminationManualCoverage(exam, value)
+                                coverageText = ""
+                            } else if (coverageText.isBlank()) {
+                                vm.setExaminationManualCoverage(exam, null)
+                            }
+                        }) {
+                            Text(if (coverageText.isBlank()) "Clear" else "Set")
+                        }
+                        TextButton(onClick = { vm.setExaminationManualCoverage(exam, null); coverageText = "" }) { Text("Auto") }
+                    }
+                    // Manual syllabus coverage (baseline)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = { vm.updateExamination(exam.copy(status = "IN_PROGRESS", syllabusCoverage = (exam.syllabusCoverage + 10).coerceAtMost(100))) }) { Text("Baseline +10%") }
+                        TextButton(onClick = { vm.updateExamination(exam.copy(status = if (exam.syllabusCoverage >= 100) "COMPLETED" else "IN_PROGRESS", syllabusCoverage = (exam.syllabusCoverage - 10).coerceAtLeast(0))) }) { Text("Baseline -10%") }
+                        TextButton(onClick = { vm.deleteExamination(exam) }) { Text("Delete") }
+                    }
+                }
+            }
+        }
         item { SectionTitle("Knowledge notes", "Capture mistakes and insights while they are fresh") }
         item {
             ElevatedCard(shape = RoundedCornerShape(20.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {

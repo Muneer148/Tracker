@@ -37,6 +37,8 @@ class TrackerViewModel(app: Application) : AndroidViewModel(app) {
     val topics = dao.studyTopics().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val sessions = dao.studySessions().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val assessments = dao.assessments().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val examinations = dao.examinations().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val topicExaminationLinks = dao.allTopicExaminationLinks().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val weeklyReviews = dao.weeklyReviews().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val completedTasks = dao.completedTaskCount().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     val totalStudyMinutes = dao.totalStudyMinutes().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -55,22 +57,27 @@ class TrackerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    suspend fun createBackupJson(): String = TrackerBackup.createJson(
-        days = dao.allDays(),
-        tasks = dao.allTasks(),
-        habits = dao.allHabits(),
-        habitLogs = dao.allHabitLogs(),
-        activities = dao.allActivities(),
-        goals = dao.allGoals(),
-        projects = dao.allProjects(),
-        journalEntries = dao.allJournalEntries(),
-        studySubjects = dao.allStudySubjects(),
-        studyTopics = dao.allStudyTopics(),
-        studySessions = dao.allStudySessions(),
-        assessments = dao.allAssessments(),
-        knowledgeNotes = dao.allKnowledgeNotes(),
-        weeklyReviews = dao.allWeeklyReviews()
-    )
+    suspend fun createBackupJson(): String {
+        val topicLinks = dao.allTopicExaminationLinks().first()
+        return TrackerBackup.createJson(
+            days = dao.allDays(),
+            tasks = dao.allTasks(),
+            habits = dao.allHabits(),
+            habitLogs = dao.allHabitLogs(),
+            activities = dao.allActivities(),
+            goals = dao.allGoals(),
+            projects = dao.allProjects(),
+            journalEntries = dao.allJournalEntries(),
+            studySubjects = dao.allStudySubjects(),
+            studyTopics = dao.allStudyTopics(),
+            studySessions = dao.allStudySessions(),
+            assessments = dao.allAssessments(),
+            knowledgeNotes = dao.allKnowledgeNotes(),
+            weeklyReviews = dao.allWeeklyReviews(),
+            examinations = dao.allExaminations(),
+            topicExaminationLinks = topicLinks
+        )
+    }
 
     suspend fun restoreBackupJson(json: String) {
         val data = TrackerBackup.parseAndValidate(json)
@@ -121,8 +128,31 @@ class TrackerViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun addSubject(v: String) = viewModelScope.launch { if (v.isNotBlank()) dao.insertSubject(StudySubjectEntity(name = v.trim())) }
     fun addTopic(subjectId: String, v: String) = viewModelScope.launch { if (v.isNotBlank()) dao.insertTopic(StudyTopicEntity(subjectId = subjectId, name = v.trim())) }
-    fun addSession(v: String, m: Int) = viewModelScope.launch { if (v.isNotBlank() && m > 0) dao.insertStudySession(StudySessionEntity(date = today, subjectId = null, topicId = null, title = v.trim(), durationMinutes = m)) }
+    fun addSession(v: String, m: Int, subjectId: String? = null, topicId: String? = null, examinationId: String? = null) = viewModelScope.launch {
+        if (v.isNotBlank() && m > 0) dao.insertStudySession(StudySessionEntity(date = today, subjectId = subjectId, topicId = topicId, examinationId = examinationId, title = v.trim(), durationMinutes = m))
+    }
     fun addAssessment(v: String, s: Double, t: Double) = viewModelScope.launch { if (v.isNotBlank() && t > 0) dao.insertAssessment(AssessmentEntity(date = today, subjectId = null, title = v.trim(), score = s, total = t)) }
+    fun addExamination(subjectId: String, title: String, date: String) = viewModelScope.launch { if (title.isNotBlank() && date.isNotBlank()) dao.insertExamination(ExaminationEntity(subjectId = subjectId, title = title.trim(), date = date, syllabusCoverage = 0, status = "UPCOMING")) }
+    fun updateExamination(exam: ExaminationEntity) = viewModelScope.launch { dao.updateExamination(exam.copy(updatedAt = System.currentTimeMillis())) }
+    fun deleteExamination(exam: ExaminationEntity) = viewModelScope.launch {
+        dao.deleteExamination(exam)
+    }
+    fun linkTopicToExamination(topicId: String, examinationId: String) = viewModelScope.launch {
+        val topic = topics.value.firstOrNull { it.id == topicId }
+        val exam = examinations.value.firstOrNull { it.id == examinationId }
+        if (topic != null && exam != null && topic.subjectId == exam.subjectId) {
+            dao.insertTopicExaminationLink(TopicExaminationLinkEntity(topicId = topicId, examinationId = examinationId))
+        } else {
+            throw IllegalArgumentException("Topic and examination must belong to the same subject")
+        }
+    }
+    fun unlinkTopicFromExamination(topicId: String, examinationId: String) = viewModelScope.launch {
+        dao.deleteTopicExaminationLink(TopicExaminationLinkEntity(topicId = topicId, examinationId = examinationId))
+    }
+    fun setExaminationManualCoverage(exam: ExaminationEntity, coverage: Int?) = viewModelScope.launch {
+        require(coverage == null || coverage in 0..100) { "Coverage must be 0-100" }
+        dao.updateExamination(exam.copy(manualCoverageOverride = coverage, updatedAt = System.currentTimeMillis()))
+    }
     fun addWeeklyReview(week: String, wins: String, blockers: String, next: String) = viewModelScope.launch {
         val start = TrackerDateUtils.weekStart(week)
         dao.insertWeeklyReview(

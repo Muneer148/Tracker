@@ -1,6 +1,7 @@
 package com.muneer.tracker
 
 import androidx.room.Room
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import com.muneer.tracker.data.*
 import org.json.JSONArray
@@ -49,10 +50,12 @@ class TrackerBackupTest {
             journalEntries = listOf(JournalEntryEntity("j1", "2026-09-20", "Journal", "Entry", 4, 1L, 2L)),
             studySubjects = listOf(subject),
             studyTopics = listOf(topic),
-            studySessions = listOf(StudySessionEntity("ss1", "2026-09-20", "s1", "st1", "Session", 30, 4, "Notes", 1L)),
+            studySessions = listOf(StudySessionEntity("ss1", "2026-09-20", "s1", "st1", null, "Session", 30, 4, "Notes", 1L)),
             assessments = listOf(AssessmentEntity("as1", "2026-09-20", "s1", "Quiz", 8.0, 10.0, "Mistake", 1L)),
             knowledgeNotes = listOf(KnowledgeNoteEntity("n1", "st1", "Note", "Content", "tag", "2026-10-01", 1L, 2L)),
-            weeklyReviews = listOf(WeeklyReviewEntity("w1", "2026-09-14", "Wins", "Blockers", "Next", 1L))
+            weeklyReviews = listOf(WeeklyReviewEntity("w1", "2026-09-14", "Wins", "Blockers", "Next", 1L)),
+            examinations = listOf(ExaminationEntity("ex1", "s1", "Midterm", "2026-10-15", 0, null, "UPCOMING", 1L, 2L)),
+            topicExaminationLinks = listOf(TopicExaminationLinkEntity("st1", "ex1", 1L))
         )
     }
 
@@ -64,15 +67,18 @@ class TrackerBackupTest {
         d.insertStudySubjects(data.studySubjects); d.insertStudyTopics(data.studyTopics)
         d.insertStudySessions(data.studySessions); d.insertAssessments(data.assessments)
         d.insertKnowledgeNotes(data.knowledgeNotes); d.insertWeeklyReviews(data.weeklyReviews)
+        d.insertExaminations(data.examinations)
+        d.insertTopicExaminationLinks(data.topicExaminationLinks)
     }
 
     private suspend fun exportCurrent(): String {
         val d = database.trackerDao()
+        val topicLinks = d.allTopicExaminationLinks().first()
         return TrackerBackup.createJson(
             d.allDays(), d.allTasks(), d.allHabits(), d.allHabitLogs(), d.allActivities(),
             d.allGoals(), d.allProjects(), d.allJournalEntries(), d.allStudySubjects(),
             d.allStudyTopics(), d.allStudySessions(), d.allAssessments(), d.allKnowledgeNotes(),
-            d.allWeeklyReviews()
+            d.allWeeklyReviews(), d.allExaminations(), topicLinks
         )
     }
 
@@ -89,16 +95,18 @@ class TrackerBackupTest {
             journalEntries = listOf(JournalEntryEntity(id="j1", date="2026-09-20", title="Journal", content="Entry")),
             studySubjects = listOf(StudySubjectEntity(id="s1", name="CS")),
             studyTopics = listOf(StudyTopicEntity(id="st1", subjectId="s1", name="DBMS")),
-            studySessions = listOf(StudySessionEntity(id="ss1", date="2026-09-20", subjectId="s1", topicId="st1", title="Session", durationMinutes=30)),
-            assessments = listOf(AssessmentEntity(id="as1", date="2026-09-20", subjectId="s1", title="Quiz", score=8.0, total=10.0)),
-            knowledgeNotes = listOf(KnowledgeNoteEntity(id="n1", topicId="st1", title="Note", content="Content")),
-            weeklyReviews = listOf(WeeklyReviewEntity(id="w1", weekStart="2026-09-14"))
+            studySessions = listOf(StudySessionEntity(id="ss1", date="2026-09-20", subjectId="s1", topicId="st1", examinationId=null, title="Session", durationMinutes=30, quality=4, notes="Notes", createdAt=1L)),
+            assessments = listOf(AssessmentEntity(id="as1", date="2026-09-20", subjectId="s1", title="Quiz", score=8.0, total=10.0, mistakes="Mistake", createdAt=1L)),
+            knowledgeNotes = listOf(KnowledgeNoteEntity(id="n1", topicId="st1", title="Note", content="Content", tags="", reviewDate=null, createdAt=1L, updatedAt=2L)),
+            weeklyReviews = listOf(WeeklyReviewEntity(id="w1", weekStart="2026-09-14", wins="Wins", blockers="Blockers", nextFocus="Next", createdAt=1L)),
+            examinations = listOf(ExaminationEntity(id="ex1", subjectId="s1", title="Midterm", date="2026-10-15", syllabusCoverage=0, manualCoverageOverride=null, status="UPCOMING", createdAt=1L, updatedAt=2L)),
+            topicExaminationLinks = listOf(TopicExaminationLinkEntity("st1", "ex1", 1L))
         ))
         assertEquals(TrackerBackup.FORMAT_VERSION, root.getInt("formatVersion"))
         assertEquals(TrackerBackup.DATABASE_VERSION, root.getInt("databaseVersion"))
         assertTrue(root.getLong("exportedAt") > 0)
         listOf("days","tasks","habits","habitLogs","activities","goals","projects","journalEntries",
-            "studySubjects","studyTopics","studySessions","assessments","knowledgeNotes","weeklyReviews")
+            "studySubjects","studyTopics","studySessions","assessments","knowledgeNotes","weeklyReviews","examinations","topicExaminationLinks")
             .forEach { assertEquals(1, root.getJSONArray(it).length()) }
     }
 
@@ -126,7 +134,8 @@ class TrackerBackupTest {
             .put("habits", JSONArray()).put("habitLogs", JSONArray()).put("activities", JSONArray()).put("goals", JSONArray())
             .put("projects", JSONArray()).put("journalEntries", JSONArray()).put("studySubjects", JSONArray())
             .put("studyTopics", JSONArray()).put("studySessions", JSONArray()).put("assessments", JSONArray())
-            .put("knowledgeNotes", JSONArray()).put("weeklyReviews", JSONArray()).toString()
+            .put("knowledgeNotes", JSONArray()).put("weeklyReviews", JSONArray()).put("examinations", JSONArray())
+            .put("topicExaminationLinks", JSONArray()).toString()
         try {
             TrackerBackup.parseAndValidate(json)
             throw AssertionError("Expected validation failure")
@@ -142,7 +151,8 @@ class TrackerBackupTest {
             tasks = emptyList(), habits = emptyList(), habitLogs = emptyList(), activities = emptyList(),
             goals = emptyList(), projects = emptyList(), journalEntries = emptyList(), studySubjects = emptyList(),
             studyTopics = emptyList(), studySessions = emptyList(), assessments = emptyList(),
-            knowledgeNotes = emptyList(), weeklyReviews = emptyList()
+            knowledgeNotes = emptyList(), weeklyReviews = emptyList(), examinations = emptyList(),
+            topicExaminationLinks = emptyList()
         ))
         json.getJSONArray("days").getJSONObject(0).put("createdAt", "not-a-number")
         try {
@@ -180,6 +190,7 @@ class TrackerBackupTest {
         assertEquals(listOf("as1"), d.allAssessments().map { it.id })
         assertEquals(listOf("n1"), d.allKnowledgeNotes().map { it.id })
         assertEquals(listOf("w1"), d.allWeeklyReviews().map { it.id })
+        assertEquals(listOf("ex1"), d.allExaminations().map { it.id })
     }
 
     @Test
@@ -202,5 +213,164 @@ class TrackerBackupTest {
         }
 
         assertEquals(listOf(existing), database.trackerDao().allDays())
+    }
+
+    @Test
+    fun parseAndValidateAcceptsFormatVersion1Backup() {
+        // Create a version 1 backup (without examinations array)
+        val json = JSONObject(TrackerBackup.createJson(
+            days = listOf(DayEntity("d1", "2026-09-20")),
+            tasks = emptyList(), habits = emptyList(), habitLogs = emptyList(), activities = emptyList(),
+            goals = emptyList(), projects = emptyList(), journalEntries = emptyList(), studySubjects = emptyList(),
+            studyTopics = emptyList(), studySessions = emptyList(), assessments = emptyList(),
+            knowledgeNotes = emptyList(), weeklyReviews = emptyList(), examinations = emptyList(),
+            topicExaminationLinks = emptyList()
+        ))
+        // Manually downgrade to format version 1 and remove examinations
+        json.put("formatVersion", 1)
+        json.put("databaseVersion", 1)
+        json.remove("examinations")
+        json.remove("topicExaminationLinks")
+
+        // Should parse successfully with empty examinations list
+        val data = TrackerBackup.parseAndValidate(json.toString())
+        assertEquals(0, data.examinations.size)
+        assertEquals(0, data.topicExaminationLinks.size)
+        assertEquals(1, data.days.size)
+    }
+
+    @Test
+    fun parseAndValidateRejectsInvalidSubjectReferenceInExamination() {
+        val json = JSONObject(TrackerBackup.createJson(
+            days = listOf(DayEntity("d1", "2026-09-20")),
+            tasks = emptyList(), habits = emptyList(), habitLogs = emptyList(), activities = emptyList(),
+            goals = emptyList(), projects = emptyList(), journalEntries = emptyList(),
+            studySubjects = listOf(StudySubjectEntity("s1", "CS")),
+            studyTopics = emptyList(), studySessions = emptyList(), assessments = emptyList(),
+            knowledgeNotes = emptyList(), weeklyReviews = emptyList(),
+            examinations = listOf(ExaminationEntity("ex1", "missing-subject", "Exam", "2026-10-15", 0, null, "UPCOMING", 1L, 2L)),
+            topicExaminationLinks = emptyList()
+        ))
+        try {
+            TrackerBackup.parseAndValidate(json.toString())
+            throw AssertionError("Expected validation failure")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("Examination references missing subject"))
+        }
+    }
+
+    @Test
+    fun parseAndValidateRejectsInvalidCoverageBoundaries() {
+        val json = JSONObject(TrackerBackup.createJson(
+            days = listOf(DayEntity("d1", "2026-09-20")),
+            tasks = emptyList(), habits = emptyList(), habitLogs = emptyList(), activities = emptyList(),
+            goals = emptyList(), projects = emptyList(), journalEntries = emptyList(),
+            studySubjects = listOf(StudySubjectEntity("s1", "CS")),
+            studyTopics = emptyList(), studySessions = emptyList(), assessments = emptyList(),
+            knowledgeNotes = emptyList(), weeklyReviews = emptyList(),
+            examinations = listOf(ExaminationEntity("ex1", "s1", "Exam", "2026-10-15", 101, null, "UPCOMING", 1L, 2L)),
+            topicExaminationLinks = emptyList()
+        ))
+        try {
+            TrackerBackup.parseAndValidate(json.toString())
+            throw AssertionError("Expected validation failure")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("syllabusCoverage must be 0-100"))
+        }
+    }
+
+    @Test
+    fun parseAndValidateRejectsInvalidStatus() {
+        val json = JSONObject(TrackerBackup.createJson(
+            days = listOf(DayEntity("d1", "2026-09-20")),
+            tasks = emptyList(), habits = emptyList(), habitLogs = emptyList(), activities = emptyList(),
+            goals = emptyList(), projects = emptyList(), journalEntries = emptyList(),
+            studySubjects = listOf(StudySubjectEntity("s1", "CS")),
+            studyTopics = emptyList(), studySessions = emptyList(), assessments = emptyList(),
+            knowledgeNotes = emptyList(), weeklyReviews = emptyList(),
+            examinations = listOf(ExaminationEntity("ex1", "s1", "Exam", "2026-10-15", 50, null, "INVALID_STATUS", 1L, 2L)),
+            topicExaminationLinks = emptyList()
+        ))
+        try {
+            TrackerBackup.parseAndValidate(json.toString())
+            throw AssertionError("Expected validation failure")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("status must be UPCOMING, IN_PROGRESS, or COMPLETED"))
+        }
+    }
+
+    @Test
+    fun version3BackupRoundTripIncludesTopicLinks() = runBlocking {
+        val original = sampleData()
+        insert(original)
+        val backup = TrackerBackup.parseAndValidate(exportCurrent())
+
+        database.trackerDao().clearTasks()
+        database.trackerDao().insertTask(TaskEntity("replacement", "d1", "Replacement"))
+        database.trackerDao().insertSubject(StudySubjectEntity("stale-subject", "Stale subject"))
+        TrackerBackup.restore(database, backup)
+
+        val d = database.trackerDao()
+        assertEquals(listOf("d1"), d.allDays().map { it.id })
+        assertEquals(listOf("t1"), d.allTasks().map { it.id })
+        assertEquals(listOf("h1"), d.allHabits().map { it.id })
+        assertEquals(listOf("h1"), d.allHabitLogs().map { it.habitId })
+        assertEquals(listOf("a1"), d.allActivities().map { it.id })
+        assertEquals(listOf("g1"), d.allGoals().map { it.id })
+        assertEquals(listOf("s1"), d.allStudySubjects().map { it.id })
+        assertEquals(listOf("p1"), d.allProjects().map { it.id })
+        assertEquals(listOf("j1"), d.allJournalEntries().map { it.id })
+        assertEquals(listOf("s1"), d.allStudySubjects().map { it.id })
+        assertEquals(listOf("st1"), d.allStudyTopics().map { it.id })
+        assertEquals(listOf("ss1"), d.allStudySessions().map { it.id })
+        assertEquals(listOf("as1"), d.allAssessments().map { it.id })
+        assertEquals(listOf("n1"), d.allKnowledgeNotes().map { it.id })
+        assertEquals(listOf("w1"), d.allWeeklyReviews().map { it.id })
+        assertEquals(listOf("ex1"), d.allExaminations().map { it.id })
+        assertEquals(listOf("st1"), d.allTopicExaminationLinks().first().map { it.topicId })
+    }
+
+    @Test
+    fun restoreRollbackOnTopicLinkUniqueViolation() = runBlocking {
+        val existing = DayEntity("existing", "2026-09-20", "Keep", 1L, 1L)
+        database.trackerDao().insertDays(listOf(existing))
+        // Use duplicate topic-examination link (composite PK) to trigger UNIQUE constraint
+        val invalid = sampleData().copy(
+            days = listOf(DayEntity("d1", "2026-09-21")),
+            topicExaminationLinks = listOf(
+                TopicExaminationLinkEntity("st1", "ex1", 1L),
+                TopicExaminationLinkEntity("st1", "ex1", 2L)
+            )
+        )
+
+        try {
+            TrackerBackup.restore(database, invalid)
+            throw AssertionError("Expected transaction failure")
+        } catch (_: Exception) {
+            // Expected: UNIQUE constraint failure must roll the transaction back.
+        }
+
+        assertEquals(listOf(existing), database.trackerDao().allDays())
+    }
+
+    @Test
+    fun parseAndValidateRejectsCrossSubjectLink() {
+        val json = JSONObject(TrackerBackup.createJson(
+            days = listOf(DayEntity("d1", "2026-09-20")),
+            tasks = emptyList(), habits = emptyList(), habitLogs = emptyList(), activities = emptyList(),
+            goals = emptyList(), projects = emptyList(), journalEntries = emptyList(),
+            studySubjects = listOf(StudySubjectEntity("s1", "CS"), StudySubjectEntity("s2", "Math")),
+            studyTopics = listOf(StudyTopicEntity("st1", "s1", "DBMS")),
+            studySessions = emptyList(), assessments = emptyList(),
+            knowledgeNotes = emptyList(), weeklyReviews = emptyList(),
+            examinations = listOf(ExaminationEntity("ex1", "s2", "Math Exam", "2026-10-15", 0, null, "UPCOMING", 1L, 2L)),
+            topicExaminationLinks = listOf(TopicExaminationLinkEntity("st1", "ex1", 1L))
+        ))
+        try {
+            TrackerBackup.parseAndValidate(json.toString())
+            throw AssertionError("Expected validation failure")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message!!.contains("same-subject rule"))
+        }
     }
 }
